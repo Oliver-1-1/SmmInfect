@@ -37,4 +37,4 @@
     CcProbeLibNull|MdePkg/Library/CcProbeLibNull/CcProbeLibNull.inf
 
 [Components]
-    SmmInfect/src/SmmInfect.inf
+    SmmInfect/SmmInfect/SmmInfect.inf
