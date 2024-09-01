@@ -1,42 +1,8 @@
 #pragma optimize("", off)
-
 #include "memory.h"
 
 UINT64 map_begin = 0x1000;
 UINT64 map_end = 0;
-
-UINT8 *ReadPhysical(UINT64 address, UINT8 *buffer, UINT64 length)
-{
-  if (address == 0)
-    return NULL;
-
-  for (UINT64 i = 0; i < length; i++)
-  {
-    buffer[i] = *(UINT8 *)(address + i);
-  }
-
-  return buffer;
-}
-
-UINT8 ReadPhysical8(UINT64 address)
-{
-  return !address ? 0 : *(UINT8 *)address;
-}
-
-UINT16 ReadPhysical16(UINT64 address)
-{
-  return !address ? 0 : *(UINT16 *)address;
-}
-
-UINT32 ReadPhysical32(UINT64 address)
-{
-  return !address ? 0 : *(UINT32 *)address;
-}
-
-UINT64 ReadPhysical64(UINT64 address)
-{
-  return !address ? 0 : *(UINT64 *)address;
-}
 
 void *ZMemSet(void *ptr, int value, UINT64 num)
 {
@@ -112,6 +78,39 @@ UINT64 ReadVirtual64(UINT64 address, UINT64 cr3)
   UINT64 value = 0;
   ReadVirtual(address, cr3, (UINT8 *)&value, sizeof(value));
   return value;
+}
+
+UINT8 *ReadPhysical(UINT64 address, UINT8 *buffer, UINT64 length)
+{
+  if (address == 0)
+    return NULL;
+
+  for (UINT64 i = 0; i < length; i++)
+  {
+    buffer[i] = *(UINT8 *)(address + i);
+  }
+
+  return buffer;
+}
+
+UINT8 ReadPhysical8(UINT64 address)
+{
+  return !address ? 0 : *(UINT8 *)address;
+}
+
+UINT16 ReadPhysical16(UINT64 address)
+{
+  return !address ? 0 : *(UINT16 *)address;
+}
+
+UINT32 ReadPhysical32(UINT64 address)
+{
+  return !address ? 0 : *(UINT32 *)address;
+}
+
+UINT64 ReadPhysical64(UINT64 address)
+{
+  return !address ? 0 : *(UINT64 *)address;
 }
 
 #ifdef Windows
