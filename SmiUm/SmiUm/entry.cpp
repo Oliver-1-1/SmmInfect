@@ -54,7 +54,7 @@ void TriggerSmi()
 void main()
 {
   printf("Size of protocol %x\n", (INT)sizeof(SmmCommunicationProtocol)); // 6b
-  printf("Address of prtocol %x\n", (INT)&protocol);
+  printf("Address of protocol %x\n", (INT)&protocol);
 
   while (true)
   {
