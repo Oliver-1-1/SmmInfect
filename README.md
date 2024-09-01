@@ -46,4 +46,4 @@ To find an appropriate SMM module to patch you would either have to reverse it t
 I am using ASUS Prime b650-plus with AMD ryzen 7 7800X3D and patching out this guid: {CE1FD2EA-F80C-4517-8A75-9F7794A1401E}
 
 ## **Credits**
-Ekknod, for being a good mentor. Check out his [projects](https://github.com/ekknod)
+Ekknod, for being a good mentor and some of his code is used. Check out his [projects](https://github.com/ekknod)
