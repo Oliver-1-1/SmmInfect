@@ -9,8 +9,8 @@ VOID EFIAPI ClearCache();
 
 EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buffer, UINTN* size)
 {
-	// This is probably redundant but is done for security reasons. rendezvous
-	if (EFI_ERROR(SmmWaitForAllProcessor(TRUE)))
+	// This is redundant but is done for security reasons. rendezvous
+	if(EFI_ERROR(SmmWaitForAllProcessor(TRUE)))
 	{
 		//while(TRUE){}
 		return EFI_SUCCESS;
