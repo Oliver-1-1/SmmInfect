@@ -28,7 +28,6 @@ EFI_SYSTEM_TABLE* gST;
 EFI_SMM_SYSTEM_TABLE2* gSmst2;
 
 void* ZMemSet(void* ptr, int value, UINT64 num);
-EFI_STATUS SetupMemoryMap();
 BOOLEAN IsAddressValid(UINT64 address);
 
 //
@@ -56,6 +55,7 @@ UINT64 ReadVirtual64(UINT64 address, UINT64 cr3);
 UINT64 TranslateVirtualToPhysical(UINT64 cr3, UINT64 address);
 EFI_STATUS MemGetKernelBase(UINT64* base);
 EFI_STATUS MemGetKernelCr3(UINT64* cr3);
+EFI_STATUS SetupMemoryMap();
 #endif
 
 //
