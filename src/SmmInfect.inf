@@ -1,0 +1,43 @@
+[Defines]
+    INF_VERSION = 0x00010006
+    BASE_NAME = SmmInfect
+    FILE_GUID = a1f9c242-8eb8-495f-baeb-e10a79cbfffe
+    MODULE_TYPE = DXE_SMM_DRIVER
+    VERSION_STRING = 1.0
+    ENTRY_POINT = UefiMain
+
+[Sources]
+    entry.c
+    memory.c
+    string.c
+    windows.c
+    communication.c
+    cache.nasm
+ [Packages]
+    MdePkg/MdePkg.dec
+    UefiCpuPkg/UefiCpuPkg.dec
+    MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+    UefiLib
+    SmmMemLib
+    UefiDriverEntryPoint
+    HobLib
+    SmmPeriodicSmiLib
+    TimerLib
+    IoLib
+    CcProbeLibNull
+    SmmCpuRendezvousLib
+    MmServicesTableLib
+[Guids]
+    gEfiFileInfoGuid
+    gEfiFileSystemInfoGuid
+    gEfiFileSystemVolumeLabelInfoIdGuid
+
+[Protocols]
+    gEfiSmmBase2ProtocolGuid
+    gEfiSmmPeriodicTimerDispatch2ProtocolGuid
+
+[Depex]
+    gEfiSmmPeriodicTimerDispatch2ProtocolGuid AND
+    gEfiSmmBase2ProtocolGuid

@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "stdafx.h": "c",
+        "xmemory": "c",
+        "xutility": "c",
+        "windows.h": "c",
+        "smmcpurendezvouslib.h": "c"
+    }
+}
