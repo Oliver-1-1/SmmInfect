@@ -210,7 +210,7 @@ UINT64 TranslateVirtualToPhysical(UINT64 cr3, UINT64 address)
 	return 0;
 }
 
-// credits rain / hermes.(i belive its h33p's code actually) project for finding ntoskrnl and cr3.
+// credits rain / hermes.(i belive its h33p's code actually) project for finding ntoskrnl and cr3. https://github.com/jussihi/SMM-Rootkit/tree/master
 BOOLEAN p_memCpy(UINT64 dest, UINT64 src, UINTN n, BOOLEAN verbose)
 {
 	if ((IsAddressValid((UINT64)src) == FALSE || IsAddressValid((UINT64)(src + n - 1)) == FALSE))
