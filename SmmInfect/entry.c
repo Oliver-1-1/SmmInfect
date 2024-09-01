@@ -3,14 +3,14 @@
 #include "windows.h"
 #include "communication.h"
 
-EFI_SMM_BASE2_PROTOCOL *SmmBase2;
-EFI_SMM_SYSTEM_TABLE2 *GSmst2;
-VOID EFIAPI ClearCache ();
+EFI_SMM_BASE2_PROTOCOL* SmmBase2;
+EFI_SMM_SYSTEM_TABLE2* GSmst2;
+VOID EFIAPI ClearCache();
 
 EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buffer, UINTN* size)
 {
 	// This is probably redundant but is done for security reasons. rendezvous
-	if(EFI_ERROR(SmmWaitForAllProcessor(TRUE)))
+	if (EFI_ERROR(SmmWaitForAllProcessor(TRUE)))
 	{
 		//while(TRUE){}
 		return EFI_SUCCESS;
@@ -25,13 +25,13 @@ EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buf
 	return EFI_SUCCESS;
 }
 
-EFI_STATUS EFIAPI UefiMain(IN EFI_LOADED_IMAGE *image, IN EFI_SYSTEM_TABLE *table)
+EFI_STATUS EFIAPI UefiMain(IN EFI_LOADED_IMAGE* image, IN EFI_SYSTEM_TABLE* table)
 {
 	gRT = table->RuntimeServices;
 	gBS = table->BootServices;
 	gST = table;
 
-	if (EFI_ERROR(gBS->LocateProtocol(&gEfiSmmBase2ProtocolGuid, 0, (void **)&SmmBase2)))
+	if (EFI_ERROR(gBS->LocateProtocol(&gEfiSmmBase2ProtocolGuid, 0, (void**)&SmmBase2)))
 	{
 		return EFI_SUCCESS;
 	}

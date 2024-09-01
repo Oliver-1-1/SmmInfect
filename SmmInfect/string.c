@@ -2,7 +2,7 @@
 
 int ToLower(int c)
 {
-	return (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A') : c; 
+	return (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A') : c;
 }
 
 int StrCmpi(const char* str1, const char* str2)
