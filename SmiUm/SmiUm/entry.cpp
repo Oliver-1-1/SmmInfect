@@ -25,7 +25,7 @@ typedef struct _SmmCommunicationProtocol
   UINT64 offset = 0;
   UINT64 read_size = 0;
   UINT8 read_buffer[30] = { 0 };
-  UINT64 smi_count = 0xB16B00B5;
+  UINT64 smi_count = 2976579765;
 
 } SmmCommunicationProtocol, * PSmmCommunicationProtocol;
 #pragma pack() // reset
@@ -40,7 +40,7 @@ void TriggerSmi()
   
   if (!NT_SUCCESS(status))
   {
-    printf("No suitable permission!\n");
+    printf("No suitable permission! Open as admin!\n");
     return;
   }
 
@@ -49,7 +49,6 @@ void TriggerSmi()
   char buffer[8];
   NtSetSystemEnvironmentValueEx(&name, &guid, buffer, sizeof(buffer), EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS);
 }
-
 
 void main()
 {
