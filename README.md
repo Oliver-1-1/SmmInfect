@@ -12,7 +12,7 @@ Windows 10/11. Linux is currently unsupported.
 
 Bios that supports [UEFI SMM variables](https://github.com/tianocore/tianocore.github.io/wiki/UEFI-Variable-Runtime-Cache)
 
-Ability to flash bios.
+Ability to flash bios. ( bios flashback is recommended )
 
 
 ## **Compiling and Installation**
