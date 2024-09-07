@@ -19,7 +19,7 @@ EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buf
 	// Perform the actual backdoor
 	PerformCommunication();
 
-	// Make sure we are not running into a cache side channel attack. 
+	// Make sure we are not running into a cache side channel attack. When the system leaves SMM it might clear cache.
 	ClearCache();
 
 	return EFI_SUCCESS;
