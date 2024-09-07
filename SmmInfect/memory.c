@@ -8,7 +8,9 @@ UINT64 map_end = 0;
 UINT8* ReadVirtual(UINT64 address, UINT64 cr3, UINT8* buffer, UINT64 length)
 {
 	if (buffer == NULL)
+	{
 		return NULL;
+	}
 
 	UINT64 remaining_size = length;
 	UINT64 offset = 0;
