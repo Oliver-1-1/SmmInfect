@@ -74,8 +74,6 @@ void main()
 
     Sleep(50);
   }
-
-  while(1){}
 }
 
 
