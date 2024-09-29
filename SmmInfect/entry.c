@@ -41,6 +41,7 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_LOADED_IMAGE* image, IN EFI_SYSTEM_TABLE* tabl
 		return EFI_SUCCESS;
 	}
 
+	//Register root handler
 	EFI_HANDLE handle;
 	GSmst2->SmiHandlerRegister(&SmiHandler, NULL, &handle);
 
