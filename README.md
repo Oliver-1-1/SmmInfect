@@ -4,6 +4,11 @@ The project aims to bring the capabilities of SMM x86-64(System Management Mode)
 This way, you can easily control the number of times the backdoor is triggered. The project consists of 2 modules. 
 One SMM driver that has a registered SMI root handler and a normal usermode application that invokes the SMI's and dictates what information to be transceived.
 
+SMM is an operating mode on the x86-64 processor with one of the highest privilege levels in the entire system.
+SMM is built to be isolated and lower privilege should not be aware of its operations.
+This isolation is done by waiting for all cores to rendezvous inside SMM before handling System Management Interrupts(SMI).
+Other protections to prevent introspection have also been implemented on most firmware.
+
 ## **Requirements**
 
 x86-64 processor.
