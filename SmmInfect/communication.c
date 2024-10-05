@@ -11,6 +11,7 @@ EFI_STATUS PerformCommunication()
 {
 	SmiCountIndex++;
 
+	// Get ntoskrnl base and the kernel context
 	UINT64 kernel = GetKernelBase();
 	UINT64 cr3 = GetKernelCr3();
 
@@ -19,6 +20,7 @@ EFI_STATUS PerformCommunication()
 		return EFI_SUCCESS;
 	}
 
+	// Get the process we write our communication buffer to
 	UINT64 cprocess = GetCommunicationProcess();
 	if (cprocess)
 	{
