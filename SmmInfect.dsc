@@ -28,7 +28,7 @@
     HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
     SmmCpuRendezvousLib|UefiCpuPkg/Library/SmmCpuRendezvousLib/SmmCpuRendezvousLib.inf
     MmServicesTableLib|MdePkg/Library/MmServicesTableLib/MmServicesTableLib.inf
-
+    SynchronizationLib|MdePkg/Library/BaseSynchronizationLib/BaseSynchronizationLib.inf
 
 [LibraryClasses.common.DXE_SMM_DRIVER]
     SmmMemLib|MdePkg/Library/SmmMemLib/SmmMemLib.inf
