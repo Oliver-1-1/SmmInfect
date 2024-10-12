@@ -29,6 +29,7 @@
     CcProbeLibNull
     SmmCpuRendezvousLib
     MmServicesTableLib
+    SynchronizationLib
 [Guids]
     gEfiFileInfoGuid
     gEfiFileSystemInfoGuid
