@@ -5,14 +5,14 @@
 UINT64 map_begin = 0x1000;
 UINT64 map_end = 0;
 
-UINT8 *ReadPhysical(UINT64 address, UINT8 *buffer, UINT64 length)
+UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
   if (address == 0)
     return NULL;
 
   for (UINT64 i = 0; i < length; i++)
   {
-    buffer[i] = *(UINT8 *)(address + i);
+    buffer[i] = *(UINT8*)(address + i);
   }
 
   return buffer;
@@ -20,27 +20,27 @@ UINT8 *ReadPhysical(UINT64 address, UINT8 *buffer, UINT64 length)
 
 UINT8 ReadPhysical8(UINT64 address)
 {
-  return !address ? 0 : *(UINT8 *)address;
+  return !address ? 0 : *(UINT8*)address;
 }
 
 UINT16 ReadPhysical16(UINT64 address)
 {
-  return !address ? 0 : *(UINT16 *)address;
+  return !address ? 0 : *(UINT16*)address;
 }
 
 UINT32 ReadPhysical32(UINT64 address)
 {
-  return !address ? 0 : *(UINT32 *)address;
+  return !address ? 0 : *(UINT32*)address;
 }
 
 UINT64 ReadPhysical64(UINT64 address)
 {
-  return !address ? 0 : *(UINT64 *)address;
+  return !address ? 0 : *(UINT64*)address;
 }
 
-void *ZMemSet(void *ptr, int value, UINT64 num)
+void* ZMemSet(void* ptr, int value, UINT64 num)
 {
-  unsigned char *p = (unsigned char *)ptr;
+  unsigned char* p = (unsigned char*)ptr;
   while (num--)
   {
     *p++ = (unsigned char)value;
@@ -49,7 +49,7 @@ void *ZMemSet(void *ptr, int value, UINT64 num)
 }
 
 // Clamp the virtual read to bounderies of page size.
-UINT8 *ReadVirtual(UINT64 address, UINT64 cr3, UINT8 *buffer, UINT64 length)
+UINT8* ReadVirtual(UINT64 address, UINT64 cr3, UINT8* buffer, UINT64 length)
 {
   if (buffer == NULL)
     return NULL;
@@ -97,34 +97,34 @@ UINT8 ReadVirtual8(UINT64 address, UINT64 cr3)
 UINT16 ReadVirtual16(UINT64 address, UINT64 cr3)
 {
   UINT16 value = 0;
-  ReadVirtual(address, cr3, (UINT8 *)&value, sizeof(value));
+  ReadVirtual(address, cr3, (UINT8*)&value, sizeof(value));
   return value;
 }
 
 UINT32 ReadVirtual32(UINT64 address, UINT64 cr3)
 {
   UINT32 value = 0;
-  ReadVirtual(address, cr3, (UINT8 *)&value, sizeof(value));
+  ReadVirtual(address, cr3, (UINT8*)&value, sizeof(value));
   return value;
 }
 UINT64 ReadVirtual64(UINT64 address, UINT64 cr3)
 {
   UINT64 value = 0;
-  ReadVirtual(address, cr3, (UINT8 *)&value, sizeof(value));
+  ReadVirtual(address, cr3, (UINT8*)&value, sizeof(value));
   return value;
 }
 
 #ifdef Windows
-STATIC BOOLEAN CheckLow(UINT64 *pml4, UINT64 *kernel_entry);
+STATIC BOOLEAN CheckLow(UINT64* pml4, UINT64* kernel_entry);
 
 EFI_STATUS SetupMemoryMap()
 {
   UINT32 descriptor_version;
   UINTN memory_map_size = 0;
-  EFI_MEMORY_DESCRIPTOR *memory_map = NULL;
+  EFI_MEMORY_DESCRIPTOR* memory_map = NULL;
   UINTN map_key;
   UINTN descriptor_size;
-  EFI_MEMORY_DESCRIPTOR *last;
+  EFI_MEMORY_DESCRIPTOR* last;
   EFI_STATUS status;
   UINT64 end;
 
@@ -134,7 +134,7 @@ EFI_STATUS SetupMemoryMap()
     return EFI_ACCESS_DENIED;
   }
 
-  status = gBS->AllocatePool(EfiBootServicesData, memory_map_size, (VOID **)&memory_map);
+  status = gBS->AllocatePool(EfiBootServicesData, memory_map_size, (VOID**)&memory_map);
 
   if (EFI_ERROR(status))
   {
@@ -147,7 +147,7 @@ EFI_STATUS SetupMemoryMap()
     gBS->FreePool(memory_map);
   }
 
-  last = (EFI_MEMORY_DESCRIPTOR *)((INT8 *)memory_map + (((UINT32)memory_map_size / (UINT32)descriptor_size) * descriptor_size));
+  last = (EFI_MEMORY_DESCRIPTOR*)((INT8*)memory_map + (((UINT32)memory_map_size / (UINT32)descriptor_size) * descriptor_size));
   end = last->PhysicalStart + (last->NumberOfPages * 0x1000);
   gBS->FreePool(memory_map);
   map_end = end;
@@ -159,9 +159,9 @@ BOOLEAN IsAddressValid(UINT64 address)
   return !(address < map_begin || address > map_end);
 }
 
-EFI_STATUS MemGetKernelCr3(UINT64 *cr3)
+EFI_STATUS MemGetKernelCr3(UINT64* cr3)
 {
-  if(cr3 == NULL)
+  if (cr3 == NULL)
   {
     return EFI_INVALID_PARAMETER;
   }
@@ -219,8 +219,8 @@ BOOLEAN p_memCpy(UINT64 dest, UINT64 src, UINTN n, BOOLEAN verbose)
     return FALSE;
   }
 
-  CHAR8 *csrc = (char *)src;
-  CHAR8 *cdest = (char *)dest;
+  CHAR8* csrc = (char*)src;
+  CHAR8* cdest = (char*)dest;
 
   for (INT32 i = 0; i < n; i++)
     cdest[i] = csrc[i];
@@ -228,7 +228,7 @@ BOOLEAN p_memCpy(UINT64 dest, UINT64 src, UINTN n, BOOLEAN verbose)
   return TRUE;
 }
 
-STATIC BOOLEAN CheckLow(UINT64 *pml4, UINT64 *kernel_entry)
+STATIC BOOLEAN CheckLow(UINT64* pml4, UINT64* kernel_entry)
 {
   UINT64 o = 0;
   while (o < 0x100000)
@@ -237,18 +237,18 @@ STATIC BOOLEAN CheckLow(UINT64 *pml4, UINT64 *kernel_entry)
 
     if (IsAddressValid(o) == TRUE)
     {
-      if (0x00000001000600E9 != (0xffffffffffff00ff & *(UINT64 *)(void *)(o + 0x000)))
+      if (0x00000001000600E9 != (0xffffffffffff00ff & *(UINT64*)(void*)(o + 0x000)))
       {
         continue;
-      } 
-      if (0xfffff80000000000 != (0xfffff80000000003 & *(UINT64 *)(void *)(o + 0x070)))
+      }
+      if (0xfffff80000000000 != (0xfffff80000000003 & *(UINT64*)(void*)(o + 0x070)))
       {
         continue;
-      } 
-      if (0xffffff0000000fff & *(UINT64 *)(void *)(o + 0x0a0))
+      }
+      if (0xffffff0000000fff & *(UINT64*)(void*)(o + 0x0a0))
       {
         continue;
-      } 
+      }
 
       p_memCpy((UINT64)pml4, (UINT64)o + 0xa0, 8, FALSE);
       p_memCpy((UINT64)kernel_entry, (UINT64)o + 0x70, 8, FALSE);
@@ -259,7 +259,7 @@ STATIC BOOLEAN CheckLow(UINT64 *pml4, UINT64 *kernel_entry)
   return FALSE;
 }
 
-EFI_STATUS MemGetKernelBase(UINT64 *base)
+EFI_STATUS MemGetKernelBase(UINT64* base)
 {
   if (base == NULL)
   {
@@ -275,13 +275,13 @@ EFI_STATUS MemGetKernelBase(UINT64 *base)
 
   if (IsAddressValid(physical_first) == TRUE && physical_first != 0)
   {
-    if (((kernel_entry & 0xFFFFFFFFFF000000) & 0xfffff) == 0 && *(INT16 *)(VOID *)(physical_first) == 0x5a4d)
+    if (((kernel_entry & 0xFFFFFFFFFF000000) & 0xfffff) == 0 && *(INT16*)(VOID*)(physical_first) == 0x5a4d)
     {
       INT32 kdbg = 0, pool_code = 0;
       for (INT32 u = 0; u < 0x1000; u++)
       {
-        kdbg = kdbg || *(UINT64 *)(VOID *)(physical_first + u) == 0x4742444b54494e49;
-        pool_code = pool_code || *(UINT64 *)(VOID *)(physical_first + u) == 0x45444f434c4f4f50;
+        kdbg = kdbg || *(UINT64*)(VOID*)(physical_first + u) == 0x4742444b54494e49;
+        pool_code = pool_code || *(UINT64*)(VOID*)(physical_first + u) == 0x45444f434c4f4f50;
         if (kdbg & pool_code)
         {
           *base = kernel_entry & 0xFFFFFFFFFF000000;
@@ -296,13 +296,13 @@ EFI_STATUS MemGetKernelBase(UINT64 *base)
 
   if (IsAddressValid(physical_sec) == TRUE && physical_sec != 0)
   {
-    if ((((kernel_entry & 0xFFFFFFFFFF000000) + 0x2000000) & 0xfffff) == 0 && *(INT16 *)(VOID *)(physical_sec) == 0x5a4d)
+    if ((((kernel_entry & 0xFFFFFFFFFF000000) + 0x2000000) & 0xfffff) == 0 && *(INT16*)(VOID*)(physical_sec) == 0x5a4d)
     {
       INT32 kdbg = 0, pool_code = 0;
       for (INT32 u = 0; u < 0x1000; u++)
       {
-        kdbg = kdbg || *(UINT64 *)(VOID *)(physical_sec + u) == 0x4742444b54494e49;
-        pool_code = pool_code || *(UINT64 *)(VOID *)(physical_sec + u) == 0x45444f434c4f4f50;
+        kdbg = kdbg || *(UINT64*)(VOID*)(physical_sec + u) == 0x4742444b54494e49;
+        pool_code = pool_code || *(UINT64*)(VOID*)(physical_sec + u) == 0x45444f434c4f4f50;
         if (kdbg & pool_code)
         {
           *base = (kernel_entry & 0xFFFFFFFFFF000000) + 0x2000000;
@@ -326,7 +326,7 @@ EFI_STATUS MemGetKernelBase(UINT64 *base)
 
         if (IsAddressValid(physical_p) == TRUE && physical_p != 0)
         {
-          if (((i + p) & mask) == 0 && *(INT16 *)(VOID *)(physical_p) == 0x5a4d)
+          if (((i + p) & mask) == 0 && *(INT16*)(VOID*)(physical_p) == 0x5a4d)
           {
             INT32 kdbg = 0, poolCode = 0;
             for (u = 0; u < 0x1000; u++)
@@ -334,8 +334,8 @@ EFI_STATUS MemGetKernelBase(UINT64 *base)
               if (IsAddressValid(p + u) == FALSE)
                 continue;
 
-              kdbg = kdbg || *(UINT64 *)(VOID *)(physical_p + u) == 0x4742444b54494e49;
-              poolCode = poolCode || *(UINT64 *)(VOID *)(physical_p + u) == 0x45444f434c4f4f50;
+              kdbg = kdbg || *(UINT64*)(VOID*)(physical_p + u) == 0x4742444b54494e49;
+              poolCode = poolCode || *(UINT64*)(VOID*)(physical_p + u) == 0x45444f434c4f4f50;
               if (kdbg & poolCode)
               {
                 *base = i + p;
