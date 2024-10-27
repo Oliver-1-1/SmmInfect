@@ -159,22 +159,6 @@ BOOLEAN IsAddressValid(UINT64 address)
   return !(address < map_begin || address > map_end);
 }
 
-EFI_STATUS MemGetKernelCr3(UINT64* cr3)
-{
-  if (cr3 == NULL)
-  {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  UINT64 pml4 = 0;
-  UINT64 entry = 0;
-  CheckLow(&pml4, &entry);
-
-  *cr3 = pml4;
-
-  return EFI_SUCCESS;
-}
-
 // credits ekknod
 UINT64 TranslateVirtualToPhysical(UINT64 cr3, UINT64 address)
 {
@@ -211,144 +195,51 @@ UINT64 TranslateVirtualToPhysical(UINT64 cr3, UINT64 address)
   return 0;
 }
 
-// credits rain / hermes.(i belive its h33p's code actually) project for finding ntoskrnl and cr3.
-BOOLEAN p_memCpy(UINT64 dest, UINT64 src, UINTN n, BOOLEAN verbose)
+EFI_STATUS MemGetKernelCr3(UINT64* cr3)
 {
-  if ((IsAddressValid((UINT64)src) == FALSE || IsAddressValid((UINT64)(src + n - 1)) == FALSE))
-  {
-    return FALSE;
-  }
-
-  CHAR8* csrc = (char*)src;
-  CHAR8* cdest = (char*)dest;
-
-  for (INT32 i = 0; i < n; i++)
-    cdest[i] = csrc[i];
-
-  return TRUE;
-}
-
-STATIC BOOLEAN CheckLow(UINT64* pml4, UINT64* kernel_entry)
-{
-  UINT64 o = 0;
-  while (o < 0x100000)
-  {
-    o += 0x1000;
-
-    if (IsAddressValid(o) == TRUE)
-    {
-      if (0x00000001000600E9 != (0xffffffffffff00ff & *(UINT64*)(void*)(o + 0x000)))
-      {
-        continue;
-      }
-      if (0xfffff80000000000 != (0xfffff80000000003 & *(UINT64*)(void*)(o + 0x070)))
-      {
-        continue;
-      }
-      if (0xffffff0000000fff & *(UINT64*)(void*)(o + 0x0a0))
-      {
-        continue;
-      }
-
-      p_memCpy((UINT64)pml4, (UINT64)o + 0xa0, 8, FALSE);
-      p_memCpy((UINT64)kernel_entry, (UINT64)o + 0x70, 8, FALSE);
-
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-EFI_STATUS MemGetKernelBase(UINT64* base)
-{
-  if (base == NULL)
+  if(cr3 == NULL)
   {
     return EFI_INVALID_PARAMETER;
   }
 
+  *cr3 = *(UINT64*)(0x10A0);
+
+  return EFI_SUCCESS;
+
+}
+
+EFI_STATUS MemGetKernelBase(UINT64* base)
+{
+  if(base == NULL)
+  {
+    return EFI_INVALID_PARAMETER;
+  }
   UINT64 cr3 = 0;
   UINT64 kernel_entry = 0;
-  CheckLow(&cr3, &kernel_entry);
+  EFI_STATUS status = EFI_SUCCESS;
 
-  UINT64 physical_first = 0;
-  physical_first = TranslateVirtualToPhysical(cr3, kernel_entry & 0xFFFFFFFFFF000000);
-
-  if (IsAddressValid(physical_first) == TRUE && physical_first != 0)
+  status = MemGetKernelCr3(&cr3);
+  
+  if(status != EFI_SUCCESS)
   {
-    if (((kernel_entry & 0xFFFFFFFFFF000000) & 0xfffff) == 0 && *(INT16*)(VOID*)(physical_first) == 0x5a4d)
-    {
-      INT32 kdbg = 0, pool_code = 0;
-      for (INT32 u = 0; u < 0x1000; u++)
-      {
-        kdbg = kdbg || *(UINT64*)(VOID*)(physical_first + u) == 0x4742444b54494e49;
-        pool_code = pool_code || *(UINT64*)(VOID*)(physical_first + u) == 0x45444f434c4f4f50;
-        if (kdbg & pool_code)
-        {
-          *base = kernel_entry & 0xFFFFFFFFFF000000;
-          return EFI_SUCCESS;
-        }
-      }
-    }
+    return EFI_NOT_FOUND;
   }
 
-  UINT64 physical_sec = 0;
-  physical_sec = TranslateVirtualToPhysical(cr3, (kernel_entry & 0xFFFFFFFFFF000000) + 0x2000000);
 
-  if (IsAddressValid(physical_sec) == TRUE && physical_sec != 0)
-  {
-    if ((((kernel_entry & 0xFFFFFFFFFF000000) + 0x2000000) & 0xfffff) == 0 && *(INT16*)(VOID*)(physical_sec) == 0x5a4d)
-    {
-      INT32 kdbg = 0, pool_code = 0;
-      for (INT32 u = 0; u < 0x1000; u++)
-      {
-        kdbg = kdbg || *(UINT64*)(VOID*)(physical_sec + u) == 0x4742444b54494e49;
-        pool_code = pool_code || *(UINT64*)(VOID*)(physical_sec + u) == 0x45444f434c4f4f50;
-        if (kdbg & pool_code)
-        {
-          *base = (kernel_entry & 0xFFFFFFFFFF000000) + 0x2000000;
-          return EFI_SUCCESS;
-        }
-      }
-    }
-  }
+	kernel_entry = (*(UINT64*)(0x1070)) & ~(SIZE_2MB - 1);
 
-  UINT64 i, p, u, mask = 0xfffff;
+	for (UINT16 i = 0; i < 0x10; i++)
+	{
+		UINT64 address = kernel_entry - (i * SIZE_2MB);
+		UINT64 translated  = TranslateVirtualToPhysical(cr3, address);
+		if (translated && *(UINT16*)translated == 23117)
+		{
+      *base = address;
+      return EFI_SUCCESS;
+		}
+	}
 
-  while (mask >= 0xfff)
-  {
-    for (i = (kernel_entry & ~0x1fffff) + 0x10000000; i > kernel_entry - 0x20000000; i -= 0x200000)
-    {
-      for (p = 0; p < 0x200000; p += 0x1000)
-      {
-
-        UINT64 physical_p = 0;
-        physical_p = TranslateVirtualToPhysical(cr3, i + p);
-
-        if (IsAddressValid(physical_p) == TRUE && physical_p != 0)
-        {
-          if (((i + p) & mask) == 0 && *(INT16*)(VOID*)(physical_p) == 0x5a4d)
-          {
-            INT32 kdbg = 0, poolCode = 0;
-            for (u = 0; u < 0x1000; u++)
-            {
-              if (IsAddressValid(p + u) == FALSE)
-                continue;
-
-              kdbg = kdbg || *(UINT64*)(VOID*)(physical_p + u) == 0x4742444b54494e49;
-              poolCode = poolCode || *(UINT64*)(VOID*)(physical_p + u) == 0x45444f434c4f4f50;
-              if (kdbg & poolCode)
-              {
-                *base = i + p;
-                return EFI_SUCCESS;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    mask = mask >> 4;
-  }
+  *base = 0;
   return EFI_NOT_FOUND;
 }
 

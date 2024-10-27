@@ -34,11 +34,11 @@
     gEfiFileInfoGuid
     gEfiFileSystemInfoGuid
     gEfiFileSystemVolumeLabelInfoIdGuid
-
+    
 [Protocols]
     gEfiSmmBase2ProtocolGuid
     gEfiSmmPeriodicTimerDispatch2ProtocolGuid
-
+    
 [Depex]
     gEfiSmmPeriodicTimerDispatch2ProtocolGuid AND
     gEfiSmmBase2ProtocolGuid
