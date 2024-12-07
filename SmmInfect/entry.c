@@ -1,14 +1,20 @@
-#pragma optimize("", off)
-#include <Library/SmmCpuRendezvousLib.h>
-#include "windows.h"
 #include "communication.h"
+#include "memory.h"
+#include <Library/SmmCpuRendezvousLib.h>
+#include <Uefi.h>
+#include <Library/UefiBootServicesTableLib.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
+#include <PiDxe.h>
+#include <Library/BaseLib.h>
+#include <Library/DebugLib.h>
+#include <Library/MmServicesTableLib.h>
 
-EFI_SMM_BASE2_PROTOCOL* SmmBase2;
-EFI_SMM_SYSTEM_TABLE2* GSmst2;
+static EFI_SMM_BASE2_PROTOCOL* SmmBase2;
 VOID EFIAPI ClearCache();
 
 EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buffer, UINTN* size)
 {
+
   // This is redundant but is done for security reasons. rendezvous
   if (EFI_ERROR(SmmWaitForAllProcessor(TRUE)))
   {
@@ -25,12 +31,13 @@ EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buf
   return EFI_SUCCESS;
 }
 
-EFI_STATUS EFIAPI UefiMain(IN EFI_LOADED_IMAGE* image, IN EFI_SYSTEM_TABLE* table)
+EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE image, IN EFI_SYSTEM_TABLE* table)
 {
   gRT = table->RuntimeServices;
   gBS = table->BootServices;
   gST = table;
-
+  EFI_SMM_SYSTEM_TABLE2* GSmst2;
+  
   if (EFI_ERROR(gBS->LocateProtocol(&gEfiSmmBase2ProtocolGuid, 0, (void**)&SmmBase2)))
   {
     return EFI_SUCCESS;
@@ -52,4 +59,3 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_LOADED_IMAGE* image, IN EFI_SYSTEM_TABLE* tabl
 
   return EFI_SUCCESS;
 }
-#pragma optimize("", on)

@@ -1,5 +1,7 @@
-#pragma optimize("", off)
 #include "communication.h"
+#include "windows.h"
+#include "memory.h"
+#include <Library/UefiLib.h>
 UINT64 SmiCountIndex = 0;
 
 UINT64 GetCommunicationProcess()
@@ -28,19 +30,19 @@ EFI_STATUS PerformCommunication()
 
     if (base)
     {
-      UINT64 section = GetSectionBaseAddressX64(cprocess, base, ".ZEPTA");
+      UINT64 section = GetSectionBaseAddressX64(cprocess, base, (unsigned char*)".ZEPTA");
+  //UINT8* ReadVirtual(UINT64 address, UINT64 cr3, UINT8* buffer, UINT64 length);
 
       if (section)
       {
         SmmCommunicationProtocol protocol = { 0 };
-        ReadVirtual(section + 0b0, GetProcessCr3(cprocess), (UINT8*)&protocol, sizeof(SmmCommunicationProtocol));
-
+        ReadVirtual(section + 0b0, GetProcessCr3(cprocess), (UINT8*)&protocol, (UINT64)sizeof(SmmCommunicationProtocol));
         if (protocol.magic != SMM_PROTOCOL_MAGIC)
         {
           return EFI_SUCCESS;
         }
 
-        UINT64 tprocess = GetEProcess(protocol.process_name);
+        UINT64 tprocess = GetEProcess((const char*)protocol.process_name);
 
         if (tprocess == 0)
         {
@@ -70,5 +72,3 @@ EFI_STATUS PerformCommunication()
   }
   return EFI_SUCCESS;
 }
-
-#pragma optimize("", on)

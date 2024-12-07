@@ -1,17 +1,16 @@
 #include "windows.h"
-
-#pragma optimize("", off)
-
-UINT64 KernelCr3 = 0;
-UINT64 KernelBase = 0;
-UINT64 PsInitialSystemProcess;
-UINT64 PsGetProcessExitProcessCalled = 0;
-UINT64 PsGetProcessImageFileName = 0;
-UINT64 ActiveProcessLinks = 0;
-UINT64 PsGetProcessPeb = 0;
-UINT64 PsGetProcessSectionBaseAddress = 0;
-BOOLEAN SetupDone = FALSE;
-EFI_STATUS SetupWindows();
+#include "memory.h"
+#include "string.h"
+static UINT64 KernelCr3 = 0;
+static UINT64 KernelBase = 0;
+static UINT64 PsInitialSystemProcess;
+static UINT64 PsGetProcessExitProcessCalled = 0;
+static UINT64 PsGetProcessImageFileName = 0;
+static UINT64 ActiveProcessLinks = 0;
+static UINT64 PsGetProcessPeb = 0;
+static UINT64 PsGetProcessSectionBaseAddress = 0;
+static BOOLEAN SetupDone = FALSE;
+static EFI_STATUS SetupWindows();
 
 UINT64 ZGetProcAddressX64(UINT64 cr3, UINT64 base, const char* export_name)
 {
@@ -218,7 +217,7 @@ UINT64 GetEProcess(const char* process_name)
   entry = proc;
   do
   {
-    ReadVirtual(entry + PsGetProcessImageFileName, KernelCr3, name, 15);
+    ReadVirtual(entry + PsGetProcessImageFileName, KernelCr3, (UINT8*)name, 15);
     name[14] = 0;
 
     UINT32 exitcalled = ReadVirtual32(entry + PsGetProcessExitProcessCalled, KernelCr3);
@@ -237,5 +236,3 @@ UINT64 GetEProcess(const char* process_name)
   } while (entry != proc);
   return 0;
 }
-
-#pragma optimize("", on)

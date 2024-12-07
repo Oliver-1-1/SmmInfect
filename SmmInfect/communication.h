@@ -1,5 +1,5 @@
 #pragma once 
-#include "windows.h"
+#include <Uefi.h>
 #define SMM_PROTOCOL_MAGIC 'i'
 #define MAGIC_OFFSET 0
 #define PROCESS_OFFSET 1

@@ -4,6 +4,11 @@
         "xmemory": "c",
         "xutility": "c",
         "windows.h": "c",
-        "smmcpurendezvouslib.h": "c"
+        "smmcpurendezvouslib.h": "c",
+        "uefilib.h": "c",
+        "debuglib.h": "c",
+        "smmcpu.h": "c",
+        "peimage.h": "c",
+        "smmperiodictimerdispatch2.h": "c"
     }
 }

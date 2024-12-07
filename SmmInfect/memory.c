@@ -1,6 +1,5 @@
-#pragma optimize("", off)
-
 #include "memory.h"
+#include <Library/UefiBootServicesTableLib.h>
 
 UINT64 map_begin = 0x1000;
 UINT64 map_end = 0;
@@ -114,8 +113,6 @@ UINT64 ReadVirtual64(UINT64 address, UINT64 cr3)
   return value;
 }
 
-#ifdef Windows
-STATIC BOOLEAN CheckLow(UINT64* pml4, UINT64* kernel_entry);
 
 EFI_STATUS SetupMemoryMap()
 {
@@ -243,5 +240,3 @@ EFI_STATUS MemGetKernelBase(UINT64* base)
   return EFI_NOT_FOUND;
 }
 
-#endif
-#pragma optimize("", on)

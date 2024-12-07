@@ -1,11 +1,10 @@
 [Defines]
-    INF_VERSION = 0x00010006
+    INF_VERSION = 1.29
     BASE_NAME = SmmInfect
-    FILE_GUID = a1f9c242-8eb8-495f-baeb-e10a79cbfffe
+    FILE_GUID = A0F56EC8-CAC5-460B-8D1F-DBF4A0836C80
     MODULE_TYPE = DXE_SMM_DRIVER
-    VERSION_STRING = 1.0
     ENTRY_POINT = UefiMain
-
+    PI_SPECIFICATION_VERSION       = 0x00010046
 [Sources]
     entry.c
     memory.c
@@ -17,7 +16,7 @@
     MdePkg/MdePkg.dec
     UefiCpuPkg/UefiCpuPkg.dec
     MdeModulePkg/MdeModulePkg.dec
-
+  
 [LibraryClasses]
     UefiLib
     SmmMemLib
@@ -30,11 +29,6 @@
     SmmCpuRendezvousLib
     MmServicesTableLib
     SynchronizationLib
-[Guids]
-    gEfiFileInfoGuid
-    gEfiFileSystemInfoGuid
-    gEfiFileSystemVolumeLabelInfoIdGuid
-    
 [Protocols]
     gEfiSmmBase2ProtocolGuid
     gEfiSmmPeriodicTimerDispatch2ProtocolGuid

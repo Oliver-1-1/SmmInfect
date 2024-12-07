@@ -1,6 +1,5 @@
 #pragma once
-#include "memory.h"
-#include "string.h"
+#include <Uefi.h>
 
 UINT64 ZGetProcAddressX64(UINT64 cr3, UINT64 base, const char* export_name);
 UINT64 GetEProcess(const char* process_name);
