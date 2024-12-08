@@ -35,6 +35,9 @@ If you are unable to setup the edk2 project on Windows here is a good [tutorial]
 
 To compile the usermode program just open the visual studio solution (SmiUm folder) and build it as Release x64.
 
+If you get errors regarding memcpy. Try Disabling optimizations by modifying conf/tools_def.txt to this:
+![path: ](https://i.imgur.com/iqptV7A.png "gg: ")
+
 If you are unable to compile there are pre-compiled binaries.
 
 **Installation**
