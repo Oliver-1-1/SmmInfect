@@ -1,8 +1,14 @@
 #include "memory.h"
+#include "windows.h"
 #include <Library/UefiBootServicesTableLib.h>
 
-UINT64 map_begin = 0x1000;
-UINT64 map_end = 0;
+static UINT64 map_begin = 0x1000;
+static UINT64 map_end = 0;
+static BOOLEAN setup_done = FALSE;
+static EFI_SMM_CPU_PROTOCOL* cpu = NULL;
+static EFI_SMM_SYSTEM_TABLE2* GSmst2 = NULL;
+
+static UINT64 ScanNtosKernel(UINT64 cr3, UINT64 entry);
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
@@ -198,10 +204,38 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
   {
     return EFI_INVALID_PARAMETER;
   }
+  
+ UINT64 rip;
+  UINT64 tempcr3;
+  cpu->ReadSaveState(cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
+  cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
 
-  *cr3 = *(UINT64*)(0x10A0);
 
-  return EFI_SUCCESS;
+  UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
+
+	for (UINT16 i = 0; i < 0x30; i++)
+	{
+		UINT64 address = kernel_entry - (i * SIZE_2MB);
+    UINT64 address2 = kernel_entry + (i * SIZE_2MB);
+
+		UINT64 translated  = TranslateVirtualToPhysical(tempcr3, address);
+    UINT64 translated2  = TranslateVirtualToPhysical(tempcr3, address2);
+
+		if (translated && *(UINT16*)translated == 23117)
+		{
+      *cr3  = tempcr3;
+      return EFI_SUCCESS;
+		}
+
+		if (translated2 && *(UINT16*)translated2 == 23117)
+		{
+      *cr3 = tempcr3;
+      return EFI_SUCCESS;
+		}
+
+	}
+
+  return EFI_NOT_FOUND;
 
 }
 
@@ -211,32 +245,80 @@ EFI_STATUS MemGetKernelBase(UINT64* base)
   {
     return EFI_INVALID_PARAMETER;
   }
-  UINT64 cr3 = 0;
-  UINT64 kernel_entry = 0;
-  EFI_STATUS status = EFI_SUCCESS;
-
-  status = MemGetKernelCr3(&cr3);
   
-  if(status != EFI_SUCCESS)
+ UINT64 rip;
+  UINT64 cr3;
+  cpu->ReadSaveState(cpu, sizeof(cr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&cr3);
+  cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
+
+
+  UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
+
+	for (UINT16 i = 0; i < 0x30; i++)
+	{
+		UINT64 address = kernel_entry - (i * SIZE_2MB);
+    UINT64 address2 = kernel_entry + (i * SIZE_2MB);
+
+		UINT64 translated  = TranslateVirtualToPhysical(cr3, address);
+    UINT64 translated2  = TranslateVirtualToPhysical(cr3, address2);
+
+		if (translated && *(UINT16*)translated == 23117)
+		{
+      *base  = address;
+      return EFI_SUCCESS;
+		}
+
+		if (translated2 && *(UINT16*)translated2 == 23117)
+		{
+      *base = address2;
+      return EFI_SUCCESS;
+		}
+
+	}
+
+  return EFI_NOT_FOUND;
+}
+
+UINT64 ScanNtosKernel(UINT64 cr3, UINT64 entry)
+{
+  UINT64 a3 = entry & ~(SIZE_2MB - 1);
+
+	for (UINT16 i = 0; i < 0x30; i++)
+	{
+		UINT64 a1  = TranslateVirtualToPhysical(cr3, a3 + (i * SIZE_2MB));
+		UINT64 a2  = TranslateVirtualToPhysical(cr3, a3 - (i * SIZE_2MB));
+  if (a1 && *(UINT16*)a1 == 23117)
+		//if (IsAddressValid(a1) && *(UINT16*)a1 == 23117 && *(UINT32*)(*(UINT32*)(a1 + 60) + a1) != 17744 && ZGetProcAddressX64(cr3, a3 + (i * SIZE_2MB), "NtClose"))
+		{
+      return a3 + (i * SIZE_2MB);
+		}
+		if (a2 && *(UINT16*)a2 == 23117)
+		{
+      return a3 - (i * SIZE_2MB);
+		}
+
+	}
+
+  return 0;
+}
+
+EFI_STATUS SetupMemory(EFI_SMM_CPU_PROTOCOL* c, EFI_SMM_SYSTEM_TABLE2* g)
+{
+  if(setup_done == TRUE)
   {
-    return EFI_NOT_FOUND;
+    return EFI_SUCCESS;
   }
 
 
-	kernel_entry = (*(UINT64*)(0x1070)) & ~(SIZE_2MB - 1);
+  if(c == NULL || g == NULL)
+  {
+    return EFI_INVALID_PARAMETER;
+  }
 
-	for (UINT16 i = 0; i < 0x10; i++)
-	{
-		UINT64 address = kernel_entry - (i * SIZE_2MB);
-		UINT64 translated  = TranslateVirtualToPhysical(cr3, address);
-		if (translated && *(UINT16*)translated == 23117)
-		{
-      *base = address;
-      return EFI_SUCCESS;
-		}
-	}
+  cpu = c;
+  GSmst2 = g;
+  setup_done = TRUE;
+  return EFI_SUCCESS;
 
-  *base = 0;
-  return EFI_NOT_FOUND;
 }
 

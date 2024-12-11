@@ -2,6 +2,11 @@
 #include "windows.h"
 #include "memory.h"
 #include <Library/UefiLib.h>
+#include <Protocol/SmmCpu.h>
+#include <Uefi.h>
+#include <Protocol/SmmCpu.h>
+#include <PiSmm.h>
+
 UINT64 SmiCountIndex = 0;
 
 UINT64 GetCommunicationProcess()
@@ -16,12 +21,11 @@ EFI_STATUS PerformCommunication()
   // Get ntoskrnl base and the kernel context
   UINT64 kernel = GetKernelBase();
   UINT64 cr3 = GetKernelCr3();
-
   if (!kernel || !cr3)
   {
     return EFI_SUCCESS;
   }
-
+  
   // Get the process we write our communication buffer to
   UINT64 cprocess = GetCommunicationProcess();
   if (cprocess)

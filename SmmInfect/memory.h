@@ -2,12 +2,15 @@
 
 #include <Uefi.h>
 #include <Protocol/SmmBase2.h>
+#include <PiSmm.h>
+#include <Protocol/SmmCpu.h>
 
 // #define Linux UNSUPPORTED
 
 void* ZMemSet(void* ptr, int value, UINT64 num);
 EFI_STATUS SetupMemoryMap();
 BOOLEAN IsAddressValid(UINT64 address);
+EFI_STATUS SetupMemory(EFI_SMM_CPU_PROTOCOL* cpu, EFI_SMM_SYSTEM_TABLE2* GSmst2);
 
 //
 // Physical memory

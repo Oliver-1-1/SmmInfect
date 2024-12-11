@@ -8,17 +8,21 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MmServicesTableLib.h>
-
+#include <Protocol/SmmCpu.h>
 static EFI_SMM_BASE2_PROTOCOL* SmmBase2;
+EFI_SMM_SYSTEM_TABLE2* GSmst2;
+
 VOID EFIAPI ClearCache();
 
 EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buffer, UINTN* size)
 {
 
-  // This is redundant but is done for security reasons. rendezvous
-  if (EFI_ERROR(SmmWaitForAllProcessor(TRUE)))
+
+  EFI_SMM_CPU_PROTOCOL* cpu = NULL;
+  GSmst2->SmmLocateProtocol(&gEfiSmmCpuProtocolGuid, NULL, (VOID **)&cpu);
+
+  if(EFI_ERROR(SetupMemory(cpu, GSmst2)))
   {
-    //while(TRUE){}
     return EFI_SUCCESS;
   }
 
@@ -36,7 +40,6 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE image, IN EFI_SYSTEM_TABLE* table)
   gRT = table->RuntimeServices;
   gBS = table->BootServices;
   gST = table;
-  EFI_SMM_SYSTEM_TABLE2* GSmst2;
   
   if (EFI_ERROR(gBS->LocateProtocol(&gEfiSmmBase2ProtocolGuid, 0, (void**)&SmmBase2)))
   {
