@@ -205,7 +205,7 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
     return EFI_INVALID_PARAMETER;
   }
   
- UINT64 rip;
+  UINT64 rip;
   UINT64 tempcr3;
   cpu->ReadSaveState(cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
   cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
@@ -213,27 +213,27 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
 
   UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
 
-	for (UINT16 i = 0; i < 0x30; i++)
-	{
-		UINT64 address = kernel_entry - (i * SIZE_2MB);
+  for (UINT16 i = 0; i < 0x30; i++)
+  {
+    UINT64 address = kernel_entry - (i * SIZE_2MB);
     UINT64 address2 = kernel_entry + (i * SIZE_2MB);
 
-		UINT64 translated  = TranslateVirtualToPhysical(tempcr3, address);
+    UINT64 translated  = TranslateVirtualToPhysical(tempcr3, address);
     UINT64 translated2  = TranslateVirtualToPhysical(tempcr3, address2);
 
-		if (translated && *(UINT16*)translated == 23117)
-		{
+    if (translated && *(UINT16*)translated == 23117)
+    {
       *cr3  = tempcr3;
       return EFI_SUCCESS;
-		}
+    }
 
-		if (translated2 && *(UINT16*)translated2 == 23117)
-		{
+    if (translated2 && *(UINT16*)translated2 == 23117)
+    {
       *cr3 = tempcr3;
       return EFI_SUCCESS;
-		}
+    }
 
-	}
+  }
 
   return EFI_NOT_FOUND;
 
@@ -246,7 +246,7 @@ EFI_STATUS MemGetKernelBase(UINT64* base)
     return EFI_INVALID_PARAMETER;
   }
   
- UINT64 rip;
+  UINT64 rip;
   UINT64 cr3;
   cpu->ReadSaveState(cpu, sizeof(cr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&cr3);
   cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
@@ -254,27 +254,27 @@ EFI_STATUS MemGetKernelBase(UINT64* base)
 
   UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
 
-	for (UINT16 i = 0; i < 0x30; i++)
-	{
-		UINT64 address = kernel_entry - (i * SIZE_2MB);
+  for (UINT16 i = 0; i < 0x30; i++)
+  {
+    UINT64 address = kernel_entry - (i * SIZE_2MB);
     UINT64 address2 = kernel_entry + (i * SIZE_2MB);
 
-		UINT64 translated  = TranslateVirtualToPhysical(cr3, address);
+    UINT64 translated  = TranslateVirtualToPhysical(cr3, address);
     UINT64 translated2  = TranslateVirtualToPhysical(cr3, address2);
 
-		if (translated && *(UINT16*)translated == 23117)
-		{
+    if (translated && *(UINT16*)translated == 23117)
+    {
       *base  = address;
       return EFI_SUCCESS;
-		}
+    }
 
-		if (translated2 && *(UINT16*)translated2 == 23117)
-		{
+     if (translated2 && *(UINT16*)translated2 == 23117)
+     {
       *base = address2;
       return EFI_SUCCESS;
-		}
+     }
 
-	}
+   }
 
   return EFI_NOT_FOUND;
 }
