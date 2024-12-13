@@ -16,8 +16,6 @@ VOID EFIAPI ClearCache();
 
 EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buffer, UINTN* size)
 {
-
-
   EFI_SMM_CPU_PROTOCOL* cpu = NULL;
   GSmst2->SmmLocateProtocol(&gEfiSmmCpuProtocolGuid, NULL, (VOID **)&cpu);
 
