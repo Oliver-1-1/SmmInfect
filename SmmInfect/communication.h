@@ -15,13 +15,13 @@
 #pragma pack(1) // Ensure that alignment is 1-byte
 typedef struct _SmmCommunicationProtocol
 {
-  UINT8 magic; // offset 0
-  UINT8 process_name[30]; // offset 1
-  UINT16 module_name[30]; // offset 31
-  UINT64 offset; // offset 91
-  UINT64 read_size; // offset 99
-  UINT8 read_buffer[30]; // offset 107
-  UINT64 smi_count; // offset 137
+    UINT8 magic; // offset 0
+    UINT8 process_name[30]; // offset 1
+    UINT16 module_name[30]; // offset 31
+    UINT64 offset; // offset 91
+    UINT64 read_size; // offset 99
+    UINT8 read_buffer[30]; // offset 107
+    UINT64 smi_count; // offset 137
 } SmmCommunicationProtocol, * PSmmCommunicationProtocol; // size 145
 #pragma pack() // reset
 
