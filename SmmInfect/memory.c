@@ -209,11 +209,6 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
     cpu->ReadSaveState(cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
     cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
 
-    UINT64 rip;
-    UINT64 tempcr3;
-    cpu->ReadSaveState(cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
-    cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
-
     UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
 
     for (UINT16 i = 0; i < 0x30; i++)
