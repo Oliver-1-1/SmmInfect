@@ -20,7 +20,7 @@ int main(void) {
     uint64_t handler_addr = (idt_entry[0] & 0xFFFF) | ((idt_entry[0] >> 32) & 0xFFFF0000) | (idt_entry[1] & 0xFFFFFFFF00000000);
     pr_info("Interrupt handler: 0x%llx\n", handler_addr);
 
-    // Align 2MB
+    // Align 1MB
     uint64_t kernel_entry = handler_addr & 0xFFFFFFFFFFF00000;
     pr_info("kernel_entry: 0x%llx\n", kernel_entry);
     
