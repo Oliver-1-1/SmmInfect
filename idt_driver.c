@@ -101,7 +101,7 @@ int main(void) {
     PKIDTENTRY64 idt_entry = (PKIDTENTRY64)(idt_base + (0xE * 16));  // (#PF);
     uint64_t handler_addr = idt_entry->OffsetLow | (idt_entry->OffsetMiddle << 16) | (idt_entry->OffsetHigh << 32);
 
-    // Align 2MB
+    // Align 1MB
     uint64_t kernel_entry = handler_addr & 0xFFFFFFFFFFF00000;
     kernel_entry -= 0x1400000;
 
