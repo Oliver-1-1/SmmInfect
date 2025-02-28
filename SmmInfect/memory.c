@@ -12,7 +12,7 @@ static UINT64 ScanNtosKernel(UINT64 cr3, UINT64 entry);
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
-    if (address == 0)
+    if (address == 0 || !IsAddressValid(address))
         return NULL;
 
     for (UINT64 i = 0; i < length; i++)
