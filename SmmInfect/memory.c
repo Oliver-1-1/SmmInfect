@@ -8,8 +8,6 @@ static BOOLEAN setup_done = FALSE;
 static EFI_SMM_CPU_PROTOCOL* cpu = NULL;
 static EFI_SMM_SYSTEM_TABLE2* GSmst2 = NULL;
 
-static UINT64 ScanNtosKernel(UINT64 cr3, UINT64 entry);
-
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
     if (address == 0 || !IsAddressValid(address))
@@ -271,28 +269,6 @@ EFI_STATUS MemGetKernelBase(UINT64* base)
     }
 
     return EFI_NOT_FOUND;
-}
-
-UINT64 ScanNtosKernel(UINT64 cr3, UINT64 entry)
-{
-    UINT64 a3 = entry & ~(SIZE_2MB - 1);
-
-    for (UINT16 i = 0; i < 0x30; i++)
-    {
-        UINT64 a1 = TranslateVirtualToPhysical(cr3, a3 + (i * SIZE_2MB));
-        UINT64 a2 = TranslateVirtualToPhysical(cr3, a3 - (i * SIZE_2MB));
-        if (a1 && *(UINT16*)a1 == 23117)
-            // if (IsAddressValid(a1) && *(UINT16*)a1 == 23117 && *(UINT32*)(*(UINT32*)(a1 + 60) + a1) != 17744 && ZGetProcAddressX64(cr3, a3 + (i * SIZE_2MB), "NtClose"))
-        {
-            return a3 + (i * SIZE_2MB);
-        }
-        if (a2 && *(UINT16*)a2 == 23117)
-        {
-            return a3 - (i * SIZE_2MB);
-        }
-    }
-
-    return 0;
 }
 
 EFI_STATUS SetupMemory(EFI_SMM_CPU_PROTOCOL* c, EFI_SMM_SYSTEM_TABLE2* g)
