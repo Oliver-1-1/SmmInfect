@@ -99,7 +99,7 @@ kallsyms_lookup_name_t get_kallsyms(unsigned long base)
 
 void main(void) {
     uint64_t idt_base = get_idt();
-    PKIDTENTRY64 idt_entry = (PKIDTENTRY64)(idt_base + (0xE * 16));  // (#PF);
+    PKIDTENTRY64 idt_entry = (PKIDTENTRY64)(idt_base + (0xE * 16)); 
     uint64_t handler_addr = idt_entry->OffsetLow | (idt_entry->OffsetMiddle << 16) | (idt_entry->OffsetHigh << 32);
 
     // Align 1MB
