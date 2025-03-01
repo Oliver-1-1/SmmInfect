@@ -10,7 +10,7 @@ static EFI_SMM_SYSTEM_TABLE2* GSmst2 = NULL;
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
-    if (address == 0 || !IsAddressValid(address))
+    if (address == 0 /*|| !IsAddressValid(address)*/)
         return NULL;
 
     for (UINT64 i = 0; i < length; i++)
