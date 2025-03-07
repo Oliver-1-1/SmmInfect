@@ -161,41 +161,131 @@ BOOLEAN IsAddressValid(UINT64 address)
     return !(address < map_begin || address > map_end);
 }
 
-// credits ekknod
+typedef union
+{
+    struct
+    {
+        UINT64 reserved1 : 3;
+        UINT64 page_level_write_through : 1;
+        UINT64 page_level_cache_disable : 1;
+        UINT64 reserved2 : 7;
+
+        UINT64 address_of_page_directory : 36;
+        UINT64 reserved3 : 16;
+    };
+
+    UINT64 flags;
+} cr3;
+
+typedef union
+{
+    struct
+    {
+        UINT64 present : 1;
+        UINT64 write : 1;
+        UINT64 supervisor : 1;
+        UINT64 page_level_write_through : 1;
+        UINT64 page_level_cache_disable : 1;
+        UINT64 accessed : 1;
+        UINT64 reserved1 : 1;
+        UINT64 must_be_zero : 1;
+        UINT64 ignored_1 : 4;
+        UINT64 page_frame_number : 36;
+        UINT64 reserved2 : 4;
+        UINT64 ignored_2 : 11;
+        UINT64 execute_disable : 1;
+    };
+
+    UINT64 flags;
+} pml4e_64;
+
+typedef union
+{
+    struct
+    {
+        UINT64 present : 1;
+        UINT64 write : 1;
+        UINT64 supervisor : 1;
+        UINT64 page_level_write_through : 1;
+        UINT64 page_level_cache_disable : 1;
+        UINT64 accessed : 1;
+        UINT64 reserved1 : 1;
+        UINT64 large_page : 1;
+        UINT64 ignored_1 : 4;
+        UINT64 page_frame_number : 36;
+        UINT64 reserved2 : 4;
+        UINT64 ignored_2 : 11;
+        UINT64 execute_disable : 1;
+    };
+
+    UINT64 flags;
+} pdpte_64;
+
+typedef union
+{
+    struct
+    {
+        UINT64 present : 1;
+        UINT64 write : 1;
+        UINT64 supervisor : 1;
+        UINT64 page_level_write_through : 1;
+        UINT64 page_level_cache_disable : 1;
+        UINT64 accessed : 1;
+        UINT64 reserved1 : 1;
+        UINT64 large_page : 1;
+        UINT64 ignored_1 : 4;
+        UINT64 page_frame_number : 36;
+        UINT64 reserved2 : 4;
+        UINT64 ignored_2 : 11;
+        UINT64 execute_disable : 1;
+    };
+
+    UINT64 flags;
+} pde_64;
+
+typedef union
+{
+    struct
+    {
+        UINT64 present : 1;
+        UINT64 write : 1;
+        UINT64 supervisor : 1;
+        UINT64 page_level_write_through : 1;
+        UINT64 page_level_cache_disable : 1;
+        UINT64 accessed : 1;
+        UINT64 dirty : 1;
+        UINT64 pat : 1;
+        UINT64 global : 1;
+        UINT64 ignored_1 : 3;
+        UINT64 page_frame_number : 36;
+        UINT64 reserved1 : 4;
+        UINT64 ignored_2 : 7;
+        UINT64 protection_key : 4;
+        UINT64 execute_disable : 1;
+    };
+    UINT64 flags;
+} pte_64;
+
 UINT64 TranslateVirtualToPhysical(UINT64 cr3, UINT64 address)
 {
-    UINT64 v2;
-    UINT64 v3;
-    UINT64 v5;
-    UINT64 v6;
+    UINT16 pml4_idx = ((UINT64)addr >> 39) & 0x1FF;
+    UINT16 pdpt_idx = ((UINT64)addr >> 30) & 0x1FF;
+    UINT16 pd_idx   = ((UINT64)addr >> 21) & 0x1FF;
+    UINT16 pt_idx   = ((UINT64)addr >> 12) & 0x1FF;
+    UINT16 offset   = addr & 0xFFF;
 
-    v2 = ReadPhysical64(8 * ((address >> 39) & 0x1FF) + cr3);
-    if (!v2)
-        return 0;
-
-    if ((v2 & 1) == 0)
-        return 0;
-
-    v3 = ReadPhysical64((v2 & 0xFFFFFFFFF000) + 8 * ((address >> 30) & 0x1FF));
-    if (!v3 || (v3 & 1) == 0)
-        return 0;
-
-    if ((v3 & 0x80u) != 0)
-        return (address & 0x3FFFFFFF) + (v3 & 0xFFFFFFFFF000);
-
-    v5 = ReadPhysical64((v3 & 0xFFFFFFFFF000) + 8 * ((address >> 21) & 0x1FF));
-    if (!v5 || (v5 & 1) == 0)
-        return 0;
-
-    if ((v5 & 0x80u) != 0)
-        return (address & 0x1FFFFF) + (v5 & 0xFFFFFFFFF000);
-
-    v6 = ReadPhysical64((v5 & 0xFFFFFFFFF000) + 8 * ((address >> 12) & 0x1FF));
-    if (v6 && (v6 & 1) != 0)
-        return (address & 0xFFF) + (v6 & 0xFFFFFFFFF000);
-
-    return 0;
+    pml4e_64* pml4_arr = (pml4e_64*)(cr3 + 8 * pml4_idx);
+    if(!pml4_arr->present) return 0;
+    pdpte_64* pdpt_arr = (pdpte_64*)((pml4_arr->page_frame_number << 12) + 8 * pdpt_idx);
+    if(!pdpt_arr->present) return 0;
+    pde_64* pd_arr = (pde_64*)((pdpt_arr->page_frame_number << 12) + 8 * pd_idx);
+    if(!pd_arr->present) return 0;
+    if(pd_arr->large_page) return ((uint64_t)(addr & 0x1FFFFF) + (*(UINT64*)pd_arr & 0xFFFFFFFFF000));
+    pte_64* pt_arr = (pte_64*)((pd_arr->page_frame_number << 12) + 8 * pt_idx);
+    if(!pt_arr->present) return 0;
+    return (addr & 0xFFF) + (*(UINT64*)pt_arr & 0xFFFFFFFFF000);
 }
+
 
 EFI_STATUS MemGetKernelCr3(UINT64* cr3)
 {
