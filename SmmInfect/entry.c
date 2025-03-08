@@ -28,7 +28,7 @@ EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buf
     PerformCommunication();
 
     // Make sure we are not running into a cache side channel attack. When the system leaves SMM it might clear cache.
-    //ClearCache();
+    ClearCache();
 
     return EFI_SUCCESS;
 }
