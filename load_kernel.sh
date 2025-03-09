@@ -1,3 +1,4 @@
-sudo insmod idt_driver.ko
-sudo rmmod idt_driver
+sudo rmmod driver
+sudo insmod driver.ko
+sudo rmmod driver
 sudo dmesg | tail
