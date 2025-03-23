@@ -1,14 +1,16 @@
 {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
     "files.associations": {
-        "stdafx.h": "c",
-        "xmemory": "c",
-        "xutility": "c",
-        "windows.h": "c",
-        "smmcpurendezvouslib.h": "c",
-        "uefilib.h": "c",
+        "cstddef": "c",
         "debuglib.h": "c",
-        "smmcpu.h": "c",
-        "peimage.h": "c",
-        "smmperiodictimerdispatch2.h": "c"
-    }
+        "smmcpurendezvouslib.h": "c",
+        "uefibootservicestablelib.h": "c",
+        "uefiruntimeservicestablelib.h": "c",
+        "baselib.h": "c",
+        "ios": "cpp",
+        "xiosbase": "cpp",
+        "system_error": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled",
 }

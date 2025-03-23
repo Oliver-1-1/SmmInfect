@@ -26,15 +26,12 @@
     SmmPeriodicSmiLib|MdePkg/Library/SmmPeriodicSmiLib/SmmPeriodicSmiLib.inf
     TimerLib|MdePkg/Library/BaseTimerLibNullTemplate/BaseTimerLibNullTemplate.inf
     HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
-    SmmCpuRendezvousLib|UefiCpuPkg/Library/SmmCpuRendezvousLib/SmmCpuRendezvousLib.inf
     MmServicesTableLib|MdePkg/Library/MmServicesTableLib/MmServicesTableLib.inf
     SynchronizationLib|MdePkg/Library/BaseSynchronizationLib/BaseSynchronizationLib.inf
 
 [LibraryClasses.common.DXE_SMM_DRIVER]
     SmmMemLib|MdePkg/Library/SmmMemLib/SmmMemLib.inf
     SmmServicesTableLib|MdePkg/Library/SmmServicesTableLib/SmmServicesTableLib.inf
-    IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
-    CcProbeLibNull|MdePkg/Library/CcProbeLibNull/CcProbeLibNull.inf
 
 [Components]
     SmmInfect/SmmInfect/SmmInfect.inf

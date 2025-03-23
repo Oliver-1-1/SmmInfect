@@ -5,10 +5,6 @@
 static UINT64 map_begin = 0x1000;
 static UINT64 map_end = 0;
 static BOOLEAN setup_done = FALSE;
-static EFI_SMM_CPU_PROTOCOL* cpu = NULL;
-static EFI_SMM_SYSTEM_TABLE2* GSmst2 = NULL;
-
-static UINT64 ScanNtosKernel(UINT64 cr3, UINT64 entry);
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
@@ -161,154 +157,57 @@ BOOLEAN IsAddressValid(UINT64 address)
     return !(address < map_begin || address > map_end);
 }
 
-// credits ekknod
-UINT64 TranslateVirtualToPhysical(UINT64 cr3, UINT64 address)
+UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address)
 {
-    UINT64 v2;
-    UINT64 v3;
-    UINT64 v5;
-    UINT64 v6;
+    UINT16 pml4_idx = ((UINT64)address >> 39) & 0x1FF;
+    UINT16 pdpt_idx = ((UINT64)address >> 30) & 0x1FF;
+    UINT16 pd_idx   = ((UINT64)address >> 21) & 0x1FF;
+    UINT16 pt_idx   = ((UINT64)address >> 12) & 0x1FF;
 
-    v2 = ReadPhysical64(8 * ((address >> 39) & 0x1FF) + cr3);
-    if (!v2)
-        return 0;
-
-    if ((v2 & 1) == 0)
-        return 0;
-
-    v3 = ReadPhysical64((v2 & 0xFFFFFFFFF000) + 8 * ((address >> 30) & 0x1FF));
-    if (!v3 || (v3 & 1) == 0)
-        return 0;
-
-    if ((v3 & 0x80u) != 0)
-        return (address & 0x3FFFFFFF) + (v3 & 0xFFFFFFFFF000);
-
-    v5 = ReadPhysical64((v3 & 0xFFFFFFFFF000) + 8 * ((address >> 21) & 0x1FF));
-    if (!v5 || (v5 & 1) == 0)
-        return 0;
-
-    if ((v5 & 0x80u) != 0)
-        return (address & 0x1FFFFF) + (v5 & 0xFFFFFFFFF000);
-
-    v6 = ReadPhysical64((v5 & 0xFFFFFFFFF000) + 8 * ((address >> 12) & 0x1FF));
-    if (v6 && (v6 & 1) != 0)
-        return (address & 0xFFF) + (v6 & 0xFFFFFFFFF000);
-
-    return 0;
+    pml4e_64* pml4_arr = (pml4e_64*)(targetcr3 + 8 * pml4_idx);
+    if(!pml4_arr->bits.present) return 0;
+    pdpte_64* pdpt_arr = (pdpte_64*)((pml4_arr->bits.page_frame_number << 12) + 8 * pdpt_idx);
+    if(!pdpt_arr->bits.present) return 0;
+    pde_64* pd_arr = (pde_64*)((pdpt_arr->bits.page_frame_number << 12) + 8 * pd_idx);
+    if(!pd_arr->bits.present) return 0;
+    if(pd_arr->bits.large_page) return ((UINT64)(address & 0x1FFFFF) + (*(UINT64*)pd_arr & 0xFFFFFFFFF000));
+    pte_64* pt_arr = (pte_64*)((pd_arr->bits.page_frame_number << 12) + 8 * pt_idx);
+    if(!pt_arr->bits.present) return 0;
+    return (address & 0xFFF) + (*(UINT64*)pt_arr & 0xFFFFFFFFF000);
 }
 
-EFI_STATUS MemGetKernelCr3(UINT64* cr3)
-{
-    if (cr3 == NULL)
-    {
-        return EFI_INVALID_PARAMETER;
-    }
 
-    UINT64 rip;
-    UINT64 tempcr3;
-    cpu->ReadSaveState(cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
-    cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
-
-    UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
-
-    for (UINT16 i = 0; i < 0x30; i++)
-    {
-        UINT64 address = kernel_entry - (i * SIZE_2MB);
-        UINT64 address2 = kernel_entry + (i * SIZE_2MB);
-
-        UINT64 translated = TranslateVirtualToPhysical(tempcr3, address);
-        UINT64 translated2 = TranslateVirtualToPhysical(tempcr3, address2);
-
-        if (translated && *(UINT16*)translated == 23117)
-        {
-            *cr3 = tempcr3;
-            return EFI_SUCCESS;
-        }
-
-        if (translated2 && *(UINT16*)translated2 == 23117)
-        {
-            *cr3 = tempcr3;
-            return EFI_SUCCESS;
-        }
-    }
-
-    return EFI_NOT_FOUND;
-}
-
-EFI_STATUS MemGetKernelBase(UINT64* base)
-{
-    if (base == NULL)
-    {
-        return EFI_INVALID_PARAMETER;
-    }
-
-    UINT64 rip;
-    UINT64 cr3;
-    cpu->ReadSaveState(cpu, sizeof(cr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&cr3);
-    cpu->ReadSaveState(cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
-
-    UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
-
-    for (UINT16 i = 0; i < 0x30; i++)
-    {
-        UINT64 address = kernel_entry - (i * SIZE_2MB);
-        UINT64 address2 = kernel_entry + (i * SIZE_2MB);
-
-        UINT64 translated = TranslateVirtualToPhysical(cr3, address);
-        UINT64 translated2 = TranslateVirtualToPhysical(cr3, address2);
-
-        if (translated && *(UINT16*)translated == 23117)
-        {
-            *base = address;
-            return EFI_SUCCESS;
-        }
-
-        if (translated2 && *(UINT16*)translated2 == 23117)
-        {
-            *base = address2;
-            return EFI_SUCCESS;
-        }
-    }
-
-    return EFI_NOT_FOUND;
-}
-
-UINT64 ScanNtosKernel(UINT64 cr3, UINT64 entry)
-{
-    UINT64 a3 = entry & ~(SIZE_2MB - 1);
-
-    for (UINT16 i = 0; i < 0x30; i++)
-    {
-        UINT64 a1 = TranslateVirtualToPhysical(cr3, a3 + (i * SIZE_2MB));
-        UINT64 a2 = TranslateVirtualToPhysical(cr3, a3 - (i * SIZE_2MB));
-        if (a1 && *(UINT16*)a1 == 23117)
-            // if (IsAddressValid(a1) && *(UINT16*)a1 == 23117 && *(UINT32*)(*(UINT32*)(a1 + 60) + a1) != 17744 && ZGetProcAddressX64(cr3, a3 + (i * SIZE_2MB), "NtClose"))
-        {
-            return a3 + (i * SIZE_2MB);
-        }
-        if (a2 && *(UINT16*)a2 == 23117)
-        {
-            return a3 - (i * SIZE_2MB);
-        }
-    }
-
-    return 0;
-}
-
-EFI_STATUS SetupMemory(EFI_SMM_CPU_PROTOCOL* c, EFI_SMM_SYSTEM_TABLE2* g)
+EFI_STATUS SetupMemory()
 {
     if (setup_done == TRUE)
     {
         return EFI_SUCCESS;
     }
 
-    if (c == NULL || g == NULL)
+    if(SetupMemoryMap() == EFI_SUCCESS)
     {
-        return EFI_INVALID_PARAMETER;
+      setup_done = TRUE;
+      return EFI_SUCCESS;
     }
 
-    cpu = c;
-    GSmst2 = g;
-    setup_done = TRUE;
-    return EFI_SUCCESS;
+    return EFI_NOT_FOUND;
+
+}
+
+UINT64 FindNearestCoffImage(UINT64 entry, UINT64 targetcr3)
+{
+  entry = entry & ~(SIZE_4KB -1);
+
+  UINTN i = 0;
+  for(i = 0; i < 500; i++)
+  {
+    UINT16 magic = ReadVirtual16(entry - (SIZE_4KB * i), targetcr3);
+
+    if(magic == 0x5A4D)
+    {
+      return (entry - (SIZE_4KB * i));
+    }
+  }
+
+  return 0;
 }

@@ -10,8 +10,11 @@
     memory.c
     string.c
     windows.c
+    linux.c
     communication.c
+    serial.c
     cache.nasm
+    shellcode.nasm
  [Packages]
     MdePkg/MdePkg.dec
     UefiCpuPkg/UefiCpuPkg.dec
@@ -24,11 +27,9 @@
     HobLib
     SmmPeriodicSmiLib
     TimerLib
-    IoLib
-    CcProbeLibNull
-    SmmCpuRendezvousLib
     MmServicesTableLib
     SynchronizationLib
+    
 [Protocols]
     gEfiSmmBase2ProtocolGuid
     gEfiSmmPeriodicTimerDispatch2ProtocolGuid
