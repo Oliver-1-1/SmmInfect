@@ -176,6 +176,38 @@ UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address)
     return (address & 0xFFF) + (*(UINT64*)pt_arr & 0xFFFFFFFFF000);
 }
 
+UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address)
+{
+  return 0;
+}
+
+void SetRwx(UINT64 address, UINT64 targetcr3)
+{
+  UINT16 pml4_idx = ((UINT64)address >> 39) & 0x1FF;
+  UINT16 pdpt_idx = ((UINT64)address >> 30) & 0x1FF;
+  UINT16 pd_idx   = ((UINT64)address >> 21) & 0x1FF;
+  UINT16 pt_idx   = ((UINT64)address >> 12) & 0x1FF;
+
+  pml4e_64* pml4_arr = (pml4e_64*)(targetcr3 + 8 * pml4_idx);
+  if(!pml4_arr->bits.present) return;
+  pdpte_64* pdpt_arr = (pdpte_64*)((pml4_arr->bits.page_frame_number << 12) + 8 * pdpt_idx);
+  if(!pdpt_arr->bits.present) return;
+  pde_64* pd_arr = (pde_64*)((pdpt_arr->bits.page_frame_number << 12) + 8 * pd_idx);
+  if(!pd_arr->bits.present) return;
+  if(pd_arr->bits.large_page)
+  {
+    pd_arr->bits.write = 1;
+    pd_arr->bits.execute_disable = 0;
+    return;
+  } 
+
+  
+  pte_64* pt_arr = (pte_64*)((pd_arr->bits.page_frame_number << 12) + 8 * pt_idx);
+  if(!pt_arr->bits.present) return;
+  pt_arr->bits.write = 1;
+  pt_arr->bits.execute_disable = 0;
+}
+
 
 EFI_STATUS SetupMemory()
 {

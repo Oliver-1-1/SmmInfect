@@ -12,7 +12,10 @@ EFI_STATUS SetupMemoryMap();
 BOOLEAN IsAddressValid(UINT64 address);
 EFI_STATUS SetupMemory();
 UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address);
+UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address);
+
 UINT64 FindNearestCoffImage(UINT64 entry, UINT64 targetcr3);
+void SetRwx(UINT64 address, UINT64 targetcr3);
 
 //
 // Physical memory

