@@ -314,7 +314,7 @@ EFI_STATUS MemGetKernelBase(UINT64* base)
             return EFI_SUCCESS;
         }
 
-        if (IsAddressValid(translated) && translated2 && *(UINT16*)translated2 == 23117)
+        if (IsAddressValid(translated2) && translated2 && *(UINT16*)translated2 == 23117)
         {
             *base = address2;
             return EFI_SUCCESS;
