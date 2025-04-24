@@ -145,7 +145,7 @@ EFI_STATUS SetupMemoryMap()
         gBS->FreePool(memory_map);
     }
 
-    last = (EFI_MEMORY_DESCRIPTOR*)((INT8*)memory_map + (((UINT32)memory_map_size / (UINT32)descriptor_size) * descriptor_size));
+    last = (EFI_MEMORY_DESCRIPTOR*)((UINT8*)memory_map + memory_map_size - descriptor_size);
     end = last->PhysicalStart + (last->NumberOfPages * 0x1000);
     gBS->FreePool(memory_map);
     map_end = end;
