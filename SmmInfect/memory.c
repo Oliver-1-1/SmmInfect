@@ -8,10 +8,10 @@ static BOOLEAN setup_done = FALSE;
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
-    if (address == 0)
+    if (!IsAddressValid(address))
         return NULL;
 
-    for (UINT64 i = 0; i < length; i++)
+    for (UINT64 i = 0; i < length; ++i)
     {
         buffer[i] = *(UINT8*)(address + i);
     }
@@ -21,22 +21,22 @@ UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 
 UINT8 ReadPhysical8(UINT64 address)
 {
-    return !address ? 0 : *(UINT8*)address;
+    return !IsAddressValid(address) ? 0 : *(UINT8*)address;
 }
 
 UINT16 ReadPhysical16(UINT64 address)
 {
-    return !address ? 0 : *(UINT16*)address;
+    return !IsAddressValid(address) ? 0 : *(UINT16*)address;
 }
 
 UINT32 ReadPhysical32(UINT64 address)
 {
-    return !address ? 0 : *(UINT32*)address;
+    return !IsAddressValid(address) ? 0 : *(UINT32*)address;
 }
 
 UINT64 ReadPhysical64(UINT64 address)
 {
-    return !address ? 0 : *(UINT64*)address;
+    return !IsAddressValid(address) ? 0 : *(UINT64*)address;
 }
 
 void* ZMemSet(void* ptr, int value, UINT64 num)
@@ -122,9 +122,7 @@ EFI_STATUS SetupMemoryMap()
     EFI_MEMORY_DESCRIPTOR* memory_map = NULL;
     UINTN map_key;
     UINTN descriptor_size;
-    EFI_MEMORY_DESCRIPTOR* last;
     EFI_STATUS status;
-    UINT64 end;
 
     status = gBS->GetMemoryMap(&memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
     if (status == EFI_INVALID_PARAMETER || status == EFI_SUCCESS)
@@ -145,10 +143,20 @@ EFI_STATUS SetupMemoryMap()
         gBS->FreePool(memory_map);
     }
 
-    last = (EFI_MEMORY_DESCRIPTOR*)((UINT8*)memory_map + memory_map_size - descriptor_size);
-    end = last->PhysicalStart + (last->NumberOfPages * 0x1000);
+    UINT64 max_end = 0;
+    EFI_MEMORY_DESCRIPTOR* desc = memory_map;
+
+    for (UINT64 i = 0; i < memory_map_size / descriptor_size; ++i) {
+        UINT64 region_end = desc->PhysicalStart + (desc->NumberOfPages * 0x1000);
+        if (region_end > max_end) {
+            max_end = region_end;
+        }
+
+        desc = (EFI_MEMORY_DESCRIPTOR*)((UINT8*)desc + descriptor_size);
+    }
+
     gBS->FreePool(memory_map);
-    map_end = end;
+    map_end = max_end;
     return EFI_SUCCESS;
 }
 
@@ -231,7 +239,7 @@ UINT64 FindNearestCoffImage(UINT64 entry, UINT64 targetcr3)
   entry = entry & ~(SIZE_4KB -1);
 
   UINTN i = 0;
-  for(i = 0; i < 500; i++)
+  for(i = 0; i < 500; ++i)
   {
     UINT16 magic = ReadVirtual16(entry - (SIZE_4KB * i), targetcr3);
 

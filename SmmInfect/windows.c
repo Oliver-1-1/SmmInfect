@@ -267,16 +267,13 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
         UINT64 address = kernel_entry - (i * SIZE_2MB);
         UINT64 address2 = kernel_entry + (i * SIZE_2MB);
 
-        UINT64 translated = TranslateVirtualToPhysical(tempcr3, address);
-        UINT64 translated2 = TranslateVirtualToPhysical(tempcr3, address2);
-
-        if (translated && *(UINT16*)translated == 23117)
+        if (ReadVirtual16(address, tempcr3) == 23117)
         {
             *cr3 = tempcr3;
             return EFI_SUCCESS;
         }
 
-        if (translated2 && *(UINT16*)translated2 == 23117)
+        if (ReadVirtual16(address2, tempcr3) == 23117)
         {
             *cr3 = tempcr3;
             return EFI_SUCCESS;
@@ -304,17 +301,14 @@ EFI_STATUS MemGetKernelBase(UINT64* base)
     {
         UINT64 address = kernel_entry - (i * SIZE_2MB);
         UINT64 address2 = kernel_entry + (i * SIZE_2MB);
-        
-        UINT64 translated = TranslateVirtualToPhysical(cr3, address);
-        UINT64 translated2 = TranslateVirtualToPhysical(cr3, address2);
 
-        if (IsAddressValid(translated) && translated && *(UINT16*)translated == 23117)
+        if (ReadVirtual16(address, cr3) == 23117)
         {
             *base = address;
             return EFI_SUCCESS;
         }
 
-        if (IsAddressValid(translated2) && translated2 && *(UINT16*)translated2 == 23117)
+        if (ReadVirtual16(address2, cr3) == 23117)
         {
             *base = address2;
             return EFI_SUCCESS;
