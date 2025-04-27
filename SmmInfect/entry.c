@@ -82,7 +82,7 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE image, IN EFI_SYSTEM_TABLE* table)
   EFI_HANDLE handle;
   GSmst2->SmiHandlerRegister(&SmiHandler, NULL, &handle);
 
-  if (EFI_ERROR(SetupMemory()))
+  if (EFI_ERROR(SetupMemory(GSmst2)))
   {
     SERIAL_PRINT("Failed to setup memory\r\n");
     return EFI_ERROR_MAJOR;

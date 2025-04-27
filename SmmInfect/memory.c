@@ -5,6 +5,7 @@
 static UINT64 map_begin = 0x1000;
 static UINT64 map_end = 0;
 static BOOLEAN setup_done = FALSE;
+static EFI_SMM_SYSTEM_TABLE2* GSmst2;
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
@@ -186,7 +187,82 @@ UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address)
 
 UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address)
 {
-  return 0;
+    cr3 ctx;
+    ctx.flags = targetcr3;
+
+    UINT64 physical_addr;
+    physical_addr = ctx.bits.address_of_page_directory << 12;
+    EFI_PHYSICAL_ADDRESS temp_phys;
+
+    GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pml4e_64)), &temp_phys);
+    pml4e_64* pml4 = (pml4e_64*)temp_phys;
+    ReadPhysical(physical_addr, (UINT8*)pml4, 512 * sizeof(pml4e_64));
+    
+    for (UINT64 pml4_i = 0; pml4_i < 512; pml4_i++)
+    {
+        if (!pml4[pml4_i].bits.present || !pml4[pml4_i].bits.supervisor)
+        {
+            continue;
+        }
+        physical_addr = pml4[pml4_i].bits.page_frame_number << 12;
+
+        GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pdpte_64)), &temp_phys);
+        pdpte_64* pdpt = (pdpte_64*)temp_phys;
+
+        ReadPhysical(physical_addr, (UINT8*)pdpt, 512 * sizeof(pdpte_64));
+
+        for (UINT64 pdpt_i = 0; pdpt_i < 512; pdpt_i++)
+        {
+            if (!pdpt[pdpt_i].bits.present || !pdpt[pdpt_i].bits.supervisor || pdpt[pdpt_i].bits.large_page)
+            {
+                continue;
+            }
+            physical_addr = pdpt[pdpt_i].bits.page_frame_number << 12;
+
+            GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pde_64)), &temp_phys);
+            pde_64* pd = (pde_64*)temp_phys;
+            ReadPhysical(physical_addr, (UINT8*)pd, 512 * sizeof(pde_64));
+
+            for (UINT64 pde_i = 0; pde_i < 512; pde_i++)
+            {
+                if (!pd[pde_i].bits.present || !pd[pde_i].bits.supervisor || pd[pde_i].bits.large_page)
+                {
+                    continue;
+                }
+                physical_addr = pd[pde_i].bits.page_frame_number << 12;
+
+                GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pte_64)), &temp_phys);
+                pte_64* pt = (pte_64*)temp_phys;
+                ReadPhysical(physical_addr, (UINT8*)pt, 512 * sizeof(pte_64));
+
+                for (UINT64 pte_i = 0; pte_i < 512; pte_i++)
+                {
+                    if(!pt[pte_i].bits.present == 1 || !pdpt[pdpt_i].bits.supervisor)
+                    {
+                        continue;
+                    }
+                    physical_addr = pt[pte_i].bits.page_frame_number << 12;
+
+                    UINT64 virtual = (pml4_i << 39) | (pdpt_i << 30) | (pde_i << 21) | (pte_i << 12);
+
+                    if (virtual & (1ull << 47)) {
+                        virtual |= 0xFFFF000000000000ull;
+                    }
+
+                    if (((UINT64)address & (~(0x1000-1))) == (physical_addr & (~(0x1000-1))))
+                    {
+                        return virtual;
+                    }
+                }
+                GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pt, EFI_SIZE_TO_PAGES(512 * sizeof(pte_64)));
+            }
+            GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pd, EFI_SIZE_TO_PAGES(512 * sizeof(pde_64)));
+        }
+        GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pdpt, EFI_SIZE_TO_PAGES(512 * sizeof(pdpte_64)));
+    }
+    GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pml4, EFI_SIZE_TO_PAGES(512 * sizeof(pml4e_64)));
+
+    return 0;
 }
 
 void SetRwx(UINT64 address, UINT64 targetcr3)
@@ -209,7 +285,6 @@ void SetRwx(UINT64 address, UINT64 targetcr3)
     return;
   } 
 
-  
   pte_64* pt_arr = (pte_64*)((pd_arr->bits.page_frame_number << 12) + 8 * pt_idx);
   if(!pt_arr->bits.present) return;
   pt_arr->bits.write = 1;
@@ -217,12 +292,18 @@ void SetRwx(UINT64 address, UINT64 targetcr3)
 }
 
 
-EFI_STATUS SetupMemory()
+EFI_STATUS SetupMemory(EFI_SMM_SYSTEM_TABLE2* smst)
 {
     if (setup_done == TRUE)
     {
         return EFI_SUCCESS;
     }
+
+    if (smst == NULL)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+    GSmst2 = smst;
 
     if(SetupMemoryMap() == EFI_SUCCESS)
     {

@@ -10,7 +10,7 @@
 void* ZMemSet(void* ptr, int value, UINT64 num);
 EFI_STATUS SetupMemoryMap();
 BOOLEAN IsAddressValid(UINT64 address);
-EFI_STATUS SetupMemory();
+EFI_STATUS SetupMemory(EFI_SMM_SYSTEM_TABLE2* smst);
 UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address);
 UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address);
 
