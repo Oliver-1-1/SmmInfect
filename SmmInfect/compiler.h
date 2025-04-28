@@ -27,12 +27,12 @@
       return ((UINT64)high << 32) | low;
   }
 
-  #define READ_CR3()                  read_cr3() 
-  #define READ_MSR(msr)               read_msr(msr)
+  #define READ_CR3()              read_cr3() 
+  #define READ_MSR(msr)           read_msr(msr)
 
 #elif defined(_MSC_VER)
   #include <intrin.h>
 
-  #define READ_CR3()           __readcr3()
-  #define READ_MSR(msr)        __readmsr(msr)
+  #define READ_CR3()              __readcr3()
+  #define READ_MSR(msr)           __readmsr(msr)
 #endif

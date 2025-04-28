@@ -100,7 +100,7 @@ EFI_STATUS GetLinuxKernelCr3(UINT64* cr3)
   UINT64 tempcr3;
   EFI_STATUS status = Cpu->ReadSaveState(Cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
 
-  if(EFI_ERROR(status) || tempcr3 == 0 ||tempcr3 == READ_CR3())
+  if(EFI_ERROR(status) || tempcr3 == 0 || tempcr3 == READ_CR3())
   {
     return EFI_NOT_FOUND;
   }
