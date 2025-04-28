@@ -1,4 +1,5 @@
 #include "windows.h"
+#include "compiler.h"
 #include "memory.h"
 #include "string.h"
 static UINT64 KernelCr3 = 0;
@@ -259,6 +260,14 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
     UINT64 tempcr3;
     Cpu->ReadSaveState(Cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
     Cpu->ReadSaveState(Cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
+
+    if (tempcr3 == READ_CR3() || (tempcr3 & 0xFFF) != 0) {
+        return EFI_NOT_FOUND;
+    }
+
+    if (rip < 0xffff800000000000) {
+        return EFI_NOT_FOUND;
+    } 
 
     UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
 

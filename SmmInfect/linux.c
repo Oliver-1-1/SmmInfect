@@ -1,3 +1,4 @@
+#include "compiler.h"
 #include "linux.h"
 #include "memory.h"
 #include "serial.h"
@@ -73,7 +74,7 @@ EFI_STATUS GetLinuxKernelBase(UINT64* base)
   UINT64 pf = entry->idt.offsets.offsetlow | ((UINT64)entry->idt.offsets.offsetmiddle << 16) | ((UINT64)entry->idt.offsets.offsethigh << 32);
   */
 
-  UINT64 entry = __readmsr(0xC0000082);
+  UINT64 entry = READ_MSR(0xC0000082);
 
   if(entry == 0)
   {
@@ -99,7 +100,7 @@ EFI_STATUS GetLinuxKernelCr3(UINT64* cr3)
   UINT64 tempcr3;
   EFI_STATUS status = Cpu->ReadSaveState(Cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
 
-  if(EFI_ERROR(status) || tempcr3 == 0 ||tempcr3 == __readcr3())
+  if(EFI_ERROR(status) || tempcr3 == 0 ||tempcr3 == READ_CR3())
   {
     return EFI_NOT_FOUND;
   }
