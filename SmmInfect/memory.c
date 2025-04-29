@@ -237,7 +237,7 @@ UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address)
 
                 for (UINT64 pte_i = 0; pte_i < 512; pte_i++)
                 {
-                    if(!pt[pte_i].bits.present == 1 || !pdpt[pdpt_i].bits.supervisor)
+                    if(!pt[pte_i].bits.present || !pdpt[pdpt_i].bits.supervisor)
                     {
                         continue;
                     }
