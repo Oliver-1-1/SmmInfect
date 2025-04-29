@@ -1,7 +1,8 @@
+#include <Library/BaseLib.h>
 #include "windows.h"
-#include "compiler.h"
 #include "memory.h"
 #include "string.h"
+
 static UINT64 KernelCr3 = 0;
 static UINT64 KernelBase = 0;
 static UINT64 PsInitialSystemProcess;
@@ -248,7 +249,6 @@ UINT64 GetWindowsEProcess(const char* process_name)
     return 0;
 }
 
-
 EFI_STATUS MemGetKernelCr3(UINT64* cr3)
 {
     if (cr3 == NULL)
@@ -261,11 +261,11 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
     Cpu->ReadSaveState(Cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
     Cpu->ReadSaveState(Cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
 
-    if (tempcr3 == READ_CR3() || (tempcr3 & 0xFFF) != 0) {
+    if (tempcr3 == AsmReadCr3() || (tempcr3 & 0xFFF) != 0) {
         return EFI_NOT_FOUND;
     }
 
-    if (rip < 0xffff800000000000) {
+    if (rip < 0xFFFF800000000000) {
         return EFI_NOT_FOUND;
     } 
 
