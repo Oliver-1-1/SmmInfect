@@ -74,7 +74,7 @@ EFI_STATUS GetLinuxKernelBase(UINT64* base)
   UINT64 pf = entry->idt.offsets.offsetlow | ((UINT64)entry->idt.offsets.offsetmiddle << 16) | ((UINT64)entry->idt.offsets.offsethigh << 32);
   */
 
-  UINT64 entry = AsmReadMsr64 (0xC0000082);
+  UINT64 entry = AsmReadMsr64(0xC0000082);
 
   if(entry == 0)
   {
