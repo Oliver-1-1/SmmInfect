@@ -11,7 +11,7 @@ Other protections to prevent introspection have also been implemented on most fi
 
 ## **Requirements**
 
-x86-64 processor. Both AMD and Intel is tested
+x86-64 processor. Both AMD and Intel are tested
 
 Windows 10/11. Linux is currently unsupported.
 
