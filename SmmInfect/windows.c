@@ -236,7 +236,7 @@ UINT64 GetWindowsEProcess(const char* process_name)
         exitcalled = exitcalled >> 2;
         exitcalled = exitcalled & 1;
 
-        if (!exitcalled && !StrCmpi(name, process_name))
+        if (!exitcalled && !StrCmpi(process_name, name))
             return entry;
 
         entry = ReadVirtual64(entry + ActiveProcessLinks, KernelCr3);
