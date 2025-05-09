@@ -54,7 +54,7 @@ UINT64 ZGetWindowsProcAddressX64(UINT64 cr3, UINT64 base, const char* export_nam
     ReadVirtual(base + ReadVirtual32((UINT64)v8, cr3), cr3, (UINT8*)name, (UINT64)sizeof(name));
     name[49] = 0;
 
-    while (StrCmpi((char*)name, export_name))
+    while (StrCmpi(export_name, (char*)name))
     {
         ++v5;
         ++v8;
@@ -88,7 +88,7 @@ UINT64 GetWindowsBaseAddressModuleX64(UINT64 eprocess, unsigned short* process_n
         unsigned short name[30];
         ReadVirtual(ReadVirtual64((UINT64)i + (UINT64)sizeof(UINT64) * 10, cr3), cr3, (UINT8*)name, sizeof(name));
 
-        if (!(unsigned int)WcsCmpi(name, process_name))
+        if (!(unsigned int)WcsCmpi(process_name, name))
         {
             break;
         }
@@ -118,7 +118,7 @@ UINT64 GetWindowsSectionBaseAddressX64(UINT64 eprocess, UINT64 module_base, unsi
 
     char* name[8] = { 0 };
     ReadVirtual(v7, cr3, (UINT8*)name, sizeof(name));
-    while (StrCmpi((const char*)name, (const char*)section_name))
+    while (StrCmpi((const char*)section_name, (const char*)name))
     {
         ++v5;
         v7 += 40;
