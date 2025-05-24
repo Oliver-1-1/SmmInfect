@@ -13,155 +13,155 @@ static KallsymsLookupName KallsymsLookUpName = NULL;
 
 EFI_STATUS SetupLinux(EFI_SMM_CPU_PROTOCOL* cpu, EFI_SMM_SYSTEM_TABLE2* smst)
 {
-  SERIAL_PRINT("Trying to setup linux \r\n", );
+    SERIAL_PRINT("Trying to setup linux \r\n", );
 
-  if (SetupDone == TRUE)
-  {
-    return EFI_SUCCESS;
-  }
-
-  if (cpu == NULL || smst == NULL)
-  {
-    return EFI_INVALID_PARAMETER;
-  }
-  Cpu = cpu;
-  GSmst2 = smst;
-
-  EFI_STATUS status = GetLinuxKernelCr3(&KernelCr3);
-  if (EFI_ERROR(status))
-  {
-    SERIAL_PRINT("Failed to find linux cr3 %llx \r\n", status);
-    return status;
-  }
-
-  status = GetLinuxKernelBase(&KernelBase);
-  if (EFI_ERROR(status))
-  {
-    SERIAL_PRINT("Failed to find linux base %llx \r\n", status);
-    return status;
-  }
-
-  volatile KallsymsLookupName kallsyms = FindLinuxKallsymsLookupName(KernelBase);
-  SERIAL_PRINT("Kallsyms %llx \r\n", kallsyms);
-
-  if (kallsyms == NULL)
-  {
-    SERIAL_PRINT("Failed to find linux kallsyms %llx \r\n", status);
-    return EFI_NOT_FOUND;
-  }
-
-  KallsymsLookUpName = kallsyms;
-  SERIAL_PRINT("Found kallsyms %llx \r\n", KallsymsLookUpName);
-  UINT64 rax;
-  for(UINT16 i = 0; i < GSmst2->NumberOfCpus; i++)
-  {
-    Cpu->ReadSaveState(Cpu, sizeof(rax), EFI_SMM_SAVE_STATE_REGISTER_R12, i, (VOID*)&rax);
-
-    if(rax == 0x4848484848484848)
+    if (SetupDone == TRUE)
     {
-      SERIAL_PRINT("Found signature!!\r\n");
-      rax = (UINT64)KallsymsLookUpName;
-      Cpu->WriteSaveState(Cpu, sizeof(rax), EFI_SMM_SAVE_STATE_REGISTER_R12, i , (VOID*)&rax);
-      SetupDone = TRUE;
+        return EFI_SUCCESS;
     }
-  }
 
-  return EFI_SUCCESS;
+    if (cpu == NULL || smst == NULL)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+    Cpu = cpu;
+    GSmst2 = smst;
+
+    EFI_STATUS status = GetLinuxKernelCr3(&KernelCr3);
+    if (EFI_ERROR(status))
+    {
+        SERIAL_PRINT("Failed to find linux cr3 %llx \r\n", status);
+        return status;
+    }
+
+    status = GetLinuxKernelBase(&KernelBase);
+    if (EFI_ERROR(status))
+    {
+        SERIAL_PRINT("Failed to find linux base %llx \r\n", status);
+        return status;
+    }
+
+    volatile KallsymsLookupName kallsyms = FindLinuxKallsymsLookupName(KernelBase);
+    SERIAL_PRINT("Kallsyms %llx \r\n", kallsyms);
+
+    if (kallsyms == NULL)
+    {
+        SERIAL_PRINT("Failed to find linux kallsyms %llx \r\n", status);
+        return EFI_NOT_FOUND;
+    }
+
+    KallsymsLookUpName = kallsyms;
+    SERIAL_PRINT("Found kallsyms %llx \r\n", KallsymsLookUpName);
+    UINT64 rax;
+    for (UINT16 i = 0; i < GSmst2->NumberOfCpus; i++)
+    {
+        Cpu->ReadSaveState(Cpu, sizeof(rax), EFI_SMM_SAVE_STATE_REGISTER_R12, i, (VOID*)&rax);
+
+        if (rax == 0x4848484848484848)
+        {
+            SERIAL_PRINT("Found signature!!\r\n");
+            rax = (UINT64)KallsymsLookUpName;
+            Cpu->WriteSaveState(Cpu, sizeof(rax), EFI_SMM_SAVE_STATE_REGISTER_R12, i, (VOID*)&rax);
+            SetupDone = TRUE;
+        }
+    }
+
+    return EFI_SUCCESS;
 }
 
 EFI_STATUS GetLinuxKernelBase(UINT64* base)
 {
-  if (base == NULL)
-  {
-    return EFI_INVALID_PARAMETER;
-  }
+    if (base == NULL)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
 
-  /*
-  UINT64 idt = 0; [https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24593.pdf] chap 10.21
-  EFI_STATUS status = GetIdtBase(&idt);
-  PKIDTENTRY64 entry = (PKIDTENTRY64)(idt + (0xE * 16));  // (#PF);
-  UINT64 pf = entry->idt.offsets.offsetlow | ((UINT64)entry->idt.offsets.offsetmiddle << 16) | ((UINT64)entry->idt.offsets.offsethigh << 32);
-  */
+    /*
+    UINT64 idt = 0; [https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24593.pdf] chap 10.21
+    EFI_STATUS status = GetIdtBase(&idt);
+    PKIDTENTRY64 entry = (PKIDTENTRY64)(idt + (0xE * 16));  // (#PF);
+    UINT64 pf = entry->idt.offsets.offsetlow | ((UINT64)entry->idt.offsets.offsetmiddle << 16) | ((UINT64)entry->idt.offsets.offsethigh << 32);
+    */
 
-  UINT64 entry = __readmsr(0xC0000082);
+    UINT64 entry = __readmsr(0xC0000082);
 
-  if (entry == 0)
-  {
-    return EFI_NOT_FOUND;
-  }
+    if (entry == 0)
+    {
+        return EFI_NOT_FOUND;
+    }
 
-  // Align 1MB
-  UINT64 kernel = entry & 0xFFFFFFFFFFF00000;
-  kernel -= 0x1400000;
+    // Align 1MB
+    UINT64 kernel = entry & 0xFFFFFFFFFFF00000;
+    kernel -= 0x1400000;
 
-  *base = kernel;
+    *base = kernel;
 
-  return EFI_SUCCESS;
+    return EFI_SUCCESS;
 }
 
 EFI_STATUS GetLinuxKernelCr3(UINT64* cr3)
 {
-  if (cr3 == NULL)
-  {
-    return EFI_INVALID_PARAMETER;
-  }
+    if (cr3 == NULL)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
 
-  UINT64 tempcr3;
-  EFI_STATUS status = Cpu->ReadSaveState(Cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
+    UINT64 tempcr3;
+    EFI_STATUS status = Cpu->ReadSaveState(Cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
 
-  if (EFI_ERROR(status) || tempcr3 == 0 || tempcr3 == AsmReadCr3())
-  {
-    return EFI_NOT_FOUND;
-  }
+    if (EFI_ERROR(status) || tempcr3 == 0 || tempcr3 == AsmReadCr3())
+    {
+        return EFI_NOT_FOUND;
+    }
 
-  *cr3 = tempcr3;
+    *cr3 = tempcr3;
 
-  return EFI_SUCCESS;
+    return EFI_SUCCESS;
 }
 
 KallsymsLookupName FindLinuxKallsymsLookupName(UINT64 base)
 {
-  UINT32 i;
-  UINT32 j;
-  BOOLEAN found = FALSE;
-  UINT64 kaddr = base;
+    UINT32 i;
+    UINT32 j;
+    BOOLEAN found = FALSE;
+    UINT64 kaddr = base;
 
-  for (i = 0x0; i < 0x200000; i++)
-  {
-    for (j = 0; j < sizeof(KallsymsPattern); j++)
+    for (i = 0x0; i < 0x200000; i++)
     {
-      if (KallsymsPattern[j] == 0x69)
-      {
-        found = TRUE;
-        continue;
-      }
-      UINT8 byte = ReadVirtual8(kaddr + j, KernelCr3);
-      //UINT8 byte = ReadPhysical8(TranslateVirtualToPhysical(KernelCr3, (kaddr + j)));
+        for (j = 0; j < sizeof(KallsymsPattern); j++)
+        {
+            if (KallsymsPattern[j] == 0x69)
+            {
+                found = TRUE;
+                continue;
+            }
+            UINT8 byte = ReadVirtual8(kaddr + j, KernelCr3);
+            //UINT8 byte = ReadPhysical8(TranslateVirtualToPhysical(KernelCr3, (kaddr + j)));
 
-      if (byte != KallsymsPattern[j])
-      {
-        found = FALSE;
-        break;
-      }
-      else
-      {
-        found = TRUE;
-      }
+            if (byte != KallsymsPattern[j])
+            {
+                found = FALSE;
+                break;
+            }
+            else
+            {
+                found = TRUE;
+            }
 
+        }
+        if (found == TRUE)
+        {
+            return (KallsymsLookupName)(kaddr - 0x10);
+        }
+
+
+        kaddr += 0x10;
     }
-    if (found == TRUE)
-    {
-      return (KallsymsLookupName)(kaddr - 0x10);
-    }
 
-
-    kaddr += 0x10;
-  }
-
-  return NULL;
+    return NULL;
 }
 
 KallsymsLookupName GetKallsyms()
 {
-  return KallsymsLookUpName;
+    return KallsymsLookUpName;
 }
