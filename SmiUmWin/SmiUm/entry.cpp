@@ -58,29 +58,24 @@ void main()
 {
   printf("Size of protocol %x\n", (INT)sizeof(SmmCommunicationProtocol)); // 6b
   printf("Address of protocol %x\n", (INT)&protocol);
-
-
-    //Read the first 15 bytes of explorer.exe. This will include DOS header if the SMM module is setup correctly.
-    strcpy((char*)protocol.process_name, "explorer.exe");
-    wcscpy((wchar_t*)protocol.module_name, L"explorer.exe");
-    protocol.offset = 0;//= 0x2F000;
-    protocol.read_size = 15;
-    memset((void*)protocol.read_buffer, 0, sizeof(protocol.read_buffer));
-
-    // Trigger a SMI and the driver will find this process.
-    TriggerSmi();
-
-    // Print out the bytes the SMM driver read for us.
-    printf("Smi count: %llu\n", protocol.smi_count);
-
-    for (int i = 0; i < protocol.read_size; i++)
-    {
-      printf("%02X ", protocol.read_buffer[i]);
-    }
-    
-    Sleep(50);
   
+  //Read the first 15 bytes of explorer.exe. This will include DOS header if the SMM module is setup correctly.
+  strcpy((char*)protocol.process_name, "explorer.exe");
+  wcscpy((wchar_t*)protocol.module_name, L"explorer.exe");
+  protocol.offset = 0;//= 0x2F000;
+  protocol.read_size = 15;
+  memset((void*)protocol.read_buffer, 0, sizeof(protocol.read_buffer));
+
+  // Trigger a SMI and the driver will find this process.
+  TriggerSmi();
+
+  // Print out the bytes the SMM driver read for us.
+  printf("Smi count: %llu\n", protocol.smi_count);
+
+  for (int i = 0; i < protocol.read_size; i++)
+  {
+    printf("%02X ", protocol.read_buffer[i]);
+  }
+    
+  Sleep(50);
 }
-
-
-
