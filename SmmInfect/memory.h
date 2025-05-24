@@ -8,6 +8,7 @@
 // #define Linux UNSUPPORTED
 
 void* ZMemSet(void* ptr, int value, UINT64 num);
+void ZMemCpy(UINT8* src, UINT8* dst, UINT64 len);
 EFI_STATUS SetupMemoryMap();
 BOOLEAN IsAddressValid(UINT64 address);
 EFI_STATUS SetupMemory(EFI_SMM_SYSTEM_TABLE2* smst);
@@ -15,6 +16,7 @@ UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address);
 UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address);
 
 UINT64 FindNearestCoffImage(UINT64 entry, UINT64 targetcr3);
+UINT64 FindNearestCoffImagePhys(UINT64 entry);
 void SetRwx(UINT64 address, UINT64 targetcr3);
 
 //

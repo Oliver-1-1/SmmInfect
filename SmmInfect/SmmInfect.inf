@@ -14,7 +14,6 @@
     communication.c
     serial.c
     cache.nasm
-    shellcode.nasm
  [Packages]
     MdePkg/MdePkg.dec
     UefiCpuPkg/UefiCpuPkg.dec

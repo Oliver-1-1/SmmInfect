@@ -24,7 +24,10 @@ VOID EFIAPI SmiRendezvousHook(UINT64 CpuIndex);
 EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buffer, UINTN* size)
 {
   GSmst2->SmmLocateProtocol(&gEfiSmmCpuProtocolGuid, NULL, (VOID**)&Cpu);
+  SERIAL_INIT();
+  SERIAL_PRINT("Handler called!\r\n");
 
+  
   if (!EFI_ERROR(SetupWindows(Cpu, GSmst2)))
   {
       OS = TRUE;
@@ -33,7 +36,6 @@ EFI_STATUS EFIAPI SmiHandler(EFI_HANDLE dispatch, CONST VOID* context, VOID* buf
         return EFI_SUCCESS;
       }
   }
-
 
   if (!EFI_ERROR(SetupLinux(Cpu, GSmst2)))
   {
@@ -63,7 +65,6 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE image, IN EFI_SYSTEM_TABLE* table)
   gRT = table->RuntimeServices;
   gBS = table->BootServices;
   gST = table;
-
   SERIAL_INIT();
 
   if (EFI_ERROR(gBS->LocateProtocol(&gEfiSmmBase2ProtocolGuid, 0, (void**)&SmmBase2)))

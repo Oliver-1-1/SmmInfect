@@ -10,4 +10,3 @@ EFI_STATUS GetLinuxKernelBase(UINT64* base);
 EFI_STATUS GetLinuxKernelCr3(UINT64* cr3);
 KallsymsLookupName FindLinuxKallsymsLookupName(UINT64 base);
 KallsymsLookupName GetKallsyms();
-EFI_STATUS PatchRtmFunction(UINT64 phystarget, UINT64 dos);

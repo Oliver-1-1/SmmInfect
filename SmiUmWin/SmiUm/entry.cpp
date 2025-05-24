@@ -59,8 +59,7 @@ void main()
   printf("Size of protocol %x\n", (INT)sizeof(SmmCommunicationProtocol)); // 6b
   printf("Address of protocol %x\n", (INT)&protocol);
 
-  while (true)
-  {
+
     //Read the first 15 bytes of explorer.exe. This will include DOS header if the SMM module is setup correctly.
     strcpy((char*)protocol.process_name, "explorer.exe");
     wcscpy((wchar_t*)protocol.module_name, L"explorer.exe");
@@ -80,7 +79,7 @@ void main()
     }
     
     Sleep(50);
-  }
+  
 }
 
 

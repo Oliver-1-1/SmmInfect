@@ -1,11 +1,14 @@
 #include "memory.h"
 #include "windows.h"
+#include "serial.h"
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/BaseLib.h>
 
 static UINT64 map_begin = 0x1000;
 static UINT64 map_end = 0;
 static BOOLEAN setup_done = FALSE;
 static EFI_SMM_SYSTEM_TABLE2* GSmst2;
+static EFI_PHYSICAL_ADDRESS pml4_phys, pdpt_phys, pd_phys, pt_phys;
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
@@ -49,6 +52,15 @@ void* ZMemSet(void* ptr, int value, UINT64 num)
     }
     return ptr;
 }
+
+void ZMemCpy(UINT8* src, UINT8* dst, UINT64 len)
+{
+  for(UINT64 i = 0; i < len; ++i)
+  {
+    dst[i] = src[i];
+  }
+}
+
 
 // Clamp the virtual read to bounderies of page size.
 UINT8* ReadVirtual(UINT64 address, UINT64 cr3, UINT8* buffer, UINT64 length)
@@ -185,85 +197,62 @@ UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address)
     return (address & 0xFFF) + (*(UINT64*)pt_arr & 0xFFFFFFFFF000);
 }
 
+//This function does not currently work. It works on linx and windows but when porting to smm it fails.
 UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address)
 {
+    if(targetcr3 == AsmReadCr3()) return 0;
+
     cr3 ctx;
+
     ctx.flags = targetcr3;
+    UINT64 physical_addr = ctx.bits.address_of_page_directory << 12;
 
-    UINT64 physical_addr;
-    physical_addr = ctx.bits.address_of_page_directory << 12;
-    EFI_PHYSICAL_ADDRESS temp_phys;
+    pml4e_64* pml4 = (pml4e_64*)pml4_phys;
+    pdpte_64* pdpt = (pdpte_64*)pdpt_phys;
+    pde_64* pd = (pde_64*)pd_phys;
+    pte_64* pt = (pte_64*)pt_phys;
 
-    GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pml4e_64)), &temp_phys);
-    pml4e_64* pml4 = (pml4e_64*)temp_phys;
     ReadPhysical(physical_addr, (UINT8*)pml4, 512 * sizeof(pml4e_64));
-    
-    for (UINT64 pml4_i = 0; pml4_i < 512; pml4_i++)
-    {
-        if (!pml4[pml4_i].bits.present || !pml4[pml4_i].bits.supervisor)
-        {
-            continue;
-        }
+
+    for (UINT64 pml4_i = 0; pml4_i < 512; pml4_i++) {
+        if (!pml4[pml4_i].bits.present) continue;
+
         physical_addr = pml4[pml4_i].bits.page_frame_number << 12;
-
-        GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pdpte_64)), &temp_phys);
-        pdpte_64* pdpt = (pdpte_64*)temp_phys;
-
         ReadPhysical(physical_addr, (UINT8*)pdpt, 512 * sizeof(pdpte_64));
 
-        for (UINT64 pdpt_i = 0; pdpt_i < 512; pdpt_i++)
-        {
-            if (!pdpt[pdpt_i].bits.present || !pdpt[pdpt_i].bits.supervisor || pdpt[pdpt_i].bits.large_page)
-            {
-                continue;
-            }
-            physical_addr = pdpt[pdpt_i].bits.page_frame_number << 12;
+        for (UINT64 pdpt_i = 0; pdpt_i < 512; pdpt_i++) {
+            if (!pdpt[pdpt_i].bits.present || pdpt[pdpt_i].bits.large_page) continue;
 
-            GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pde_64)), &temp_phys);
-            pde_64* pd = (pde_64*)temp_phys;
+            physical_addr = pdpt[pdpt_i].bits.page_frame_number << 12;
             ReadPhysical(physical_addr, (UINT8*)pd, 512 * sizeof(pde_64));
 
-            for (UINT64 pde_i = 0; pde_i < 512; pde_i++)
-            {
-                if (!pd[pde_i].bits.present || !pd[pde_i].bits.supervisor || pd[pde_i].bits.large_page)
-                {
-                    continue;
-                }
-                physical_addr = pd[pde_i].bits.page_frame_number << 12;
+            for (UINT64 pde_i = 0; pde_i < 512; pde_i++) {
+                if (!pd[pde_i].bits.present || pd[pde_i].bits.large_page) continue;
 
-                GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(512 * sizeof(pte_64)), &temp_phys);
-                pte_64* pt = (pte_64*)temp_phys;
+                physical_addr = pd[pde_i].bits.page_frame_number << 12;
                 ReadPhysical(physical_addr, (UINT8*)pt, 512 * sizeof(pte_64));
 
-                for (UINT64 pte_i = 0; pte_i < 512; pte_i++)
-                {
-                    if(!pt[pte_i].bits.present || !pdpt[pdpt_i].bits.supervisor)
-                    {
-                        continue;
-                    }
-                    physical_addr = pt[pte_i].bits.page_frame_number << 12;
+                for (UINT64 pte_i = 0; pte_i < 512; pte_i++) {
+                    if (!pt[pte_i].bits.present) continue;
 
+                    UINT64 page_phys = pt[pte_i].bits.page_frame_number << 12;
                     UINT64 virtual = (pml4_i << 39) | (pdpt_i << 30) | (pde_i << 21) | (pte_i << 12);
 
-                    if (virtual & (1ull << 47)) {
-                        virtual |= 0xFFFF000000000000ull;
-                    }
+                    if (virtual & (1ull << 47)) virtual |= 0xFFFF000000000000ull;
 
-                    if (((UINT64)address & (~(0x1000-1))) == (physical_addr & (~(0x1000-1))))
-                    {
-                        return virtual;
+                    if ((address & ~0xFFF) == (page_phys & ~0xFFF)) {
+                        SERIAL_PRINT("Translation worked!\r\n");
+
+                        return virtual + (address & 0xFFF);
                     }
                 }
-                GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pt, EFI_SIZE_TO_PAGES(512 * sizeof(pte_64)));
             }
-            GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pd, EFI_SIZE_TO_PAGES(512 * sizeof(pde_64)));
         }
-        GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pdpt, EFI_SIZE_TO_PAGES(512 * sizeof(pdpte_64)));
     }
-    GSmst2->SmmFreePages((EFI_PHYSICAL_ADDRESS)pml4, EFI_SIZE_TO_PAGES(512 * sizeof(pml4e_64)));
 
     return 0;
 }
+
 
 void SetRwx(UINT64 address, UINT64 targetcr3)
 {
@@ -305,14 +294,42 @@ EFI_STATUS SetupMemory(EFI_SMM_SYSTEM_TABLE2* smst)
     }
     GSmst2 = smst;
 
-    if(SetupMemoryMap() == EFI_SUCCESS)
+    if(SetupMemoryMap() != EFI_SUCCESS)
     {
-      setup_done = TRUE;
-      return EFI_SUCCESS;
+      return EFI_NOT_FOUND;
+    }
+    
+    EFI_STATUS status;
+    status = GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData,
+                                      EFI_SIZE_TO_PAGES(512 * sizeof(pml4e_64)), &pml4_phys);
+    if (status != EFI_SUCCESS) {
+        SERIAL_PRINT("Failed alloc pml4: %llx\r\n", status);
+        while(1){}; // Something is wrong outside of our control. Make pc not startable
     }
 
-    return EFI_NOT_FOUND;
+    status = GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData,
+                                      EFI_SIZE_TO_PAGES(512 * sizeof(pdpte_64)), &pdpt_phys);
+    if (status != EFI_SUCCESS) {
+        SERIAL_PRINT("Failed alloc pdpt: %llx\r\n", status);
+        while(1){}; // Something is wrong outside of our control. Make pc not startable
+    }
 
+    status = GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData,
+                                      EFI_SIZE_TO_PAGES(512 * sizeof(pde_64)), &pd_phys);
+    if (status != EFI_SUCCESS) {
+        SERIAL_PRINT("Failed alloc pd: %llx\r\n", status);
+        while(1){}; // Something is wrong outside of our control. Make pc not startable
+    }
+
+    status = GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData,
+                                      EFI_SIZE_TO_PAGES(512 * sizeof(pte_64)), &pt_phys);
+    if (status != EFI_SUCCESS) {
+        SERIAL_PRINT("Failed alloc pte: %llx\r\n", status);
+        while(1){}; // Something is wrong outside of our control. Make pc not startable
+    }
+    setup_done = TRUE;
+
+    return EFI_SUCCESS;
 }
 
 UINT64 FindNearestCoffImage(UINT64 entry, UINT64 targetcr3)
@@ -327,6 +344,24 @@ UINT64 FindNearestCoffImage(UINT64 entry, UINT64 targetcr3)
     if(magic == 0x5A4D)
     {
       return (entry - (SIZE_4KB * i));
+    }
+  }
+
+  return 0;
+}
+
+UINT64 FindNearestCoffImagePhys(UINT64 entry)
+{
+  entry = entry & ~(SIZE_4KB -1);
+
+  UINTN i = 0;
+  for(i = 0; i < 500; ++i)
+  {
+    UINT16 magic = ReadPhysical16(entry + (SIZE_4KB * i));
+
+    if(magic == 0x5A4D)
+    {
+      return (entry + (SIZE_4KB * i));
     }
   }
 

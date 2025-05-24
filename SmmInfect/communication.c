@@ -1,6 +1,7 @@
 #include "communication.h"
 #include "windows.h"
 #include "memory.h"
+#include "serial.h"
 #include <Library/UefiLib.h>
 #include <Protocol/SmmCpu.h>
 #include <Uefi.h>
@@ -23,7 +24,7 @@ EFI_STATUS PerformCommunication()
     UINT64 cr3 = GetWindowsKernelCr3();
     if (!kernel || !cr3)
     {
-        return EFI_SUCCESS;
+        return EFI_NOT_FOUND;
     }
 
     // Get the process we write our communication buffer to
@@ -43,21 +44,22 @@ EFI_STATUS PerformCommunication()
                 ReadVirtual(section + 0b0, GetWindowsProcessCr3(cprocess), (UINT8*)&protocol, (UINT64)sizeof(SmmCommunicationProtocol));
                 if (protocol.magic != SMM_PROTOCOL_MAGIC)
                 {
-                    return EFI_SUCCESS;
+                    return EFI_NOT_FOUND;
                 }
 
                 UINT64 tprocess = GetWindowsEProcess((const char*)protocol.process_name);
+                //SERIAL_PRINT("Translated rtm: %llx %llx  \r\n", TranslatePhysicalToVirtual(GetWindowsKernelCr3(), TranslateVirtualToPhysical(GetWindowsKernelCr3(), tprocess)), tprocess);
 
                 if (tprocess == 0)
                 {
-                    return EFI_SUCCESS;
+                    return EFI_NOT_FOUND;
                 }
 
                 UINT64 tbase = GetWindowsBaseAddressModuleX64(tprocess, protocol.module_name);
 
                 if (tbase == 0)
                 {
-                    return EFI_SUCCESS;
+                    return EFI_NOT_FOUND;
                 }
 
                 *(UINT64*)(TranslateVirtualToPhysical(GetWindowsProcessCr3(cprocess), section + SMI_COUNT_OFFSET)) = SmiCountIndex;

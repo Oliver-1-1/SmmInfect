@@ -34,4 +34,4 @@
     SmmServicesTableLib|MdePkg/Library/SmmServicesTableLib/SmmServicesTableLib.inf
 
 [Components]
-    SmmInfect/SmmInfect/SmmInfect.inf
+    SmmInfect-main/SmmInfect/SmmInfect.inf

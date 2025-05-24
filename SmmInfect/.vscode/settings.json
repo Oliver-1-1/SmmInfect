@@ -10,7 +10,13 @@
         "baselib.h": "c",
         "ios": "cpp",
         "xiosbase": "cpp",
-        "system_error": "c"
+        "system_error": "c",
+        "memory.h": "c",
+        "linux.h": "c",
+        "windows.h": "c",
+        "communication.h": "c",
+        "serial.h": "c",
+        "pidxe.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
 }

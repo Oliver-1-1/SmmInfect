@@ -1,8 +1,6 @@
-#include <Library/BaseLib.h>
 #include "windows.h"
 #include "memory.h"
 #include "string.h"
-
 static UINT64 KernelCr3 = 0;
 static UINT64 KernelBase = 0;
 static UINT64 PsInitialSystemProcess;
@@ -54,7 +52,7 @@ UINT64 ZGetWindowsProcAddressX64(UINT64 cr3, UINT64 base, const char* export_nam
     ReadVirtual(base + ReadVirtual32((UINT64)v8, cr3), cr3, (UINT8*)name, (UINT64)sizeof(name));
     name[49] = 0;
 
-    while (StrCmpi(export_name, (char*)name))
+    while (StrCmpi((char*)name, export_name))
     {
         ++v5;
         ++v8;
@@ -88,7 +86,7 @@ UINT64 GetWindowsBaseAddressModuleX64(UINT64 eprocess, unsigned short* process_n
         unsigned short name[30];
         ReadVirtual(ReadVirtual64((UINT64)i + (UINT64)sizeof(UINT64) * 10, cr3), cr3, (UINT8*)name, sizeof(name));
 
-        if (!(unsigned int)WcsCmpi(process_name, name))
+        if (!(unsigned int)WcsCmpi(name, process_name))
         {
             break;
         }
@@ -118,7 +116,7 @@ UINT64 GetWindowsSectionBaseAddressX64(UINT64 eprocess, UINT64 module_base, unsi
 
     char* name[8] = { 0 };
     ReadVirtual(v7, cr3, (UINT8*)name, sizeof(name));
-    while (StrCmpi((const char*)section_name, (const char*)name))
+    while (StrCmpi((const char*)name, (const char*)section_name))
     {
         ++v5;
         v7 += 40;
@@ -168,6 +166,7 @@ UINT64 GetWindowsProcessBaseAddress(UINT64 eprocess)
 
 EFI_STATUS SetupWindows(EFI_SMM_CPU_PROTOCOL* cpu, EFI_SMM_SYSTEM_TABLE2* smst)
 {
+    
     if (SetupDone == TRUE)
     {
         return EFI_SUCCESS;
@@ -236,7 +235,7 @@ UINT64 GetWindowsEProcess(const char* process_name)
         exitcalled = exitcalled >> 2;
         exitcalled = exitcalled & 1;
 
-        if (!exitcalled && !StrCmpi(process_name, name))
+        if (!exitcalled && !StrCmpi(name, process_name))
             return entry;
 
         entry = ReadVirtual64(entry + ActiveProcessLinks, KernelCr3);
@@ -249,6 +248,7 @@ UINT64 GetWindowsEProcess(const char* process_name)
     return 0;
 }
 
+
 EFI_STATUS MemGetKernelCr3(UINT64* cr3)
 {
     if (cr3 == NULL)
@@ -260,14 +260,6 @@ EFI_STATUS MemGetKernelCr3(UINT64* cr3)
     UINT64 tempcr3;
     Cpu->ReadSaveState(Cpu, sizeof(tempcr3), EFI_SMM_SAVE_STATE_REGISTER_CR3, GSmst2->CurrentlyExecutingCpu, (VOID*)&tempcr3);
     Cpu->ReadSaveState(Cpu, sizeof(rip), EFI_SMM_SAVE_STATE_REGISTER_RIP, GSmst2->CurrentlyExecutingCpu, (VOID*)&rip);
-
-    if (tempcr3 == AsmReadCr3() || (tempcr3 & 0xFFF) != 0) {
-        return EFI_NOT_FOUND;
-    }
-
-    if (rip < 0xFFFF800000000000) {
-        return EFI_NOT_FOUND;
-    } 
 
     UINT64 kernel_entry = rip & ~(SIZE_2MB - 1);
 
