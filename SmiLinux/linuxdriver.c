@@ -17,7 +17,7 @@ extern void smi_linux(void);
 
 void smi_print(const char *fmt, unsigned long long val)
 {
-    printk( pr_fmt(fmt), val);
+  printk( pr_fmt(fmt), val);
 }
 EXPORT_SYMBOL(smi_print);
 
