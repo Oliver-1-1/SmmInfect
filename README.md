@@ -14,6 +14,7 @@ Other protections to prevent introspection have also been implemented on most fi
 x86-64 processor. Both AMD and Intel are tested
 
 Windows 10/11.
+
 Linux (ubuntu 24.04.1 LTS) is supported with a showcase version.
 
 Bios that supports [UEFI SMM variables](https://github.com/tianocore/tianocore.github.io/wiki/UEFI-Variable-Runtime-Cache)
