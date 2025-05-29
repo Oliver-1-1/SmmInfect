@@ -4,7 +4,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseLib.h>
 
-static UINT64 map_begin = 0x1000;
+static UINT64 map_begin = 0;
 static UINT64 map_end = 0;
 static BOOLEAN setup_done = FALSE;
 static EFI_SMM_SYSTEM_TABLE2* GSmst2;
