@@ -9,11 +9,17 @@ static UINT64 map_end = 0;
 static BOOLEAN setup_done = FALSE;
 static EFI_SMM_SYSTEM_TABLE2* GSmst2;
 static EFI_PHYSICAL_ADDRESS pml4_phys, pdpt_phys, pd_phys, pt_phys;
+BOOLEAN MapPhysicalMemory(UINT64 address);
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
     if (!IsAddressValid(address))
         return NULL;
+
+    if(!MapPhysicalMemory(address))
+    {
+      return NULL;
+    }
 
     for (UINT64 i = 0; i < length; ++i)
     {
@@ -159,9 +165,11 @@ EFI_STATUS SetupMemoryMap()
     UINT64 max_end = 0;
     EFI_MEMORY_DESCRIPTOR* desc = memory_map;
 
-    for (UINT64 i = 0; i < memory_map_size / descriptor_size; ++i) {
+    for (UINT64 i = 0; i < memory_map_size / descriptor_size; ++i) 
+    {
         UINT64 region_end = desc->PhysicalStart + (desc->NumberOfPages * 0x1000);
-        if (region_end > max_end) {
+        if (region_end > max_end) 
+        {
             max_end = region_end;
         }
 
@@ -195,6 +203,65 @@ UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address)
     pte_64* pt_arr = (pte_64*)((pd_arr->bits.page_frame_number << 12) + 8 * pt_idx);
     if(!pt_arr->bits.present) return 0;
     return (address & 0xFFF) + (*(UINT64*)pt_arr & 0xFFFFFFFFF000);
+}
+
+//From SmmInfect fork: https://github.com/r1cky33/SmmInfect/blob/85a2c170e0a8bed8fffb7d4f9ce766f602a070b6/SmmInfect/memory.c#L428
+BOOLEAN MapPhysicalMemory(UINT64 address)
+{
+    UINT64 PMASK =  (~0xfull << 8) & 0xfffffffffull
+    address &= PMASK;
+
+    UINT16 pml4_idx = ((UINT64)address >> 39) & 0x1FF;
+    UINT16 pdpt_idx = ((UINT64)address >> 30) & 0x1FF;
+    UINT16 pd_idx   = ((UINT64)address >> 21) & 0x1FF;
+    UINT16 pt_idx   = ((UINT64)address >> 12) & 0x1FF;
+    UINT64* pml4    = (UINT64*)AsmReadCr3();
+
+    if (!(pml4[pml4_idx] & 0x1)) 
+    {
+        EFI_PHYSICAL_ADDRESS pdpt;
+        GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, 1, &pdpt);
+        ZMemSet((void*)pdpt, 0, SIZE_4KB);
+        pml4[pml4_idx] = pdpt | 0x3;
+    }
+
+    UINT64* pdpt = (UINT64*)(pml4[pml4_idx] & PMASK);
+
+    if (!(pdpt[pdpt_idx] & 0x1)) 
+    {
+        EFI_PHYSICAL_ADDRESS pd;
+        GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, 1, &pd);
+        ZMemSet((void*)pd, 0, SIZE_4KB);
+        pdpt[pdpt_idx] = pd | 0x3;
+    } 
+    else 
+    {
+        if (pdpt[pdpt_idx] & 0x80) 
+            return TRUE; 
+    }
+
+    UINT64* pd = (UINT64*)(pdpt[pdpt_idx] & PMASK);
+
+    if (!(pd[pd_idx] & 0x1)) {
+        EFI_PHYSICAL_ADDRESS pt;
+        GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, 1, &pt);
+
+        ZMemSet((void*)pt, 0, SIZE_4KB);
+        pd[pd_idx] = pt | 0x3;
+    } 
+    else 
+    {
+        if (pd[pd_idx] & 0x80)
+            return TRUE;
+    }
+
+    UINT64* pte = (UINT64*)(pd[pd_idx] & PMASK);
+
+    if (!(pte[pt_idx] & 0x1)) {
+        pte[pt_idx] = address | 0x3;
+    } 
+
+    return TRUE;
 }
 
 //This function does not currently work. It works on linx and windows but when porting to smm it fails.
@@ -298,7 +365,7 @@ EFI_STATUS SetupMemory(EFI_SMM_SYSTEM_TABLE2* smst)
     {
       return EFI_NOT_FOUND;
     }
-    
+
     EFI_STATUS status;
     status = GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData,
                                       EFI_SIZE_TO_PAGES(512 * sizeof(pml4e_64)), &pml4_phys);
@@ -327,6 +394,7 @@ EFI_STATUS SetupMemory(EFI_SMM_SYSTEM_TABLE2* smst)
         SERIAL_PRINT("Failed alloc pte: %llx\r\n", status);
         while(1){}; // Something is wrong outside of our control. Make pc not startable
     }
+    
     setup_done = TRUE;
 
     return EFI_SUCCESS;
