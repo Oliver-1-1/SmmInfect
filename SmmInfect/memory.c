@@ -200,7 +200,6 @@ UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address)
     if(!pt_arr->bits.present) return 0;
     return (address & 0xFFF) + (*(UINT64*)pt_arr & 0xFFFFFFFFF000);
 }
-static const UINT64 PMASK =  (~0xfull << 8) & 0xfffffffffull;
 
 EFI_STATUS MapPhysicalMemory()
 {
