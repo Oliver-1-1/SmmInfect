@@ -3,12 +3,14 @@
 #include "serial.h"
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseLib.h>
+#include <Library/CpuLib.h>
 
 static UINT64 map_begin = 0;
 static UINT64 map_end = 0;
 static BOOLEAN setup_done = FALSE;
 static EFI_SMM_SYSTEM_TABLE2* GSmst2;
 static EFI_PHYSICAL_ADDRESS pml4_phys, pdpt_phys, pd_phys, pt_phys;
+EFI_STATUS MapPhysicalMemory();
 
 UINT8* ReadPhysical(UINT64 address, UINT8* buffer, UINT64 length)
 {
@@ -198,6 +200,72 @@ UINT64 TranslateVirtualToPhysical(UINT64 targetcr3, UINT64 address)
     if(!pt_arr->bits.present) return 0;
     return (address & 0xFFF) + (*(UINT64*)pt_arr & 0xFFFFFFFFF000);
 }
+static const UINT64 PMASK =  (~0xfull << 8) & 0xfffffffffull;
+
+EFI_STATUS MapPhysicalMemory()
+{
+    for (UINT64 addr = map_begin; addr < map_end; addr += SIZE_2MB)
+    {
+        UINT16 pml4_idx = ((UINT64)addr >> 39) & 0x1FFu;
+        UINT16 pdpt_idx = ((UINT64)addr >> 30) & 0x1FFu;
+        UINT16 pd_idx   = ((UINT64)addr >> 21) & 0x1FFu;
+        cr3 ctx;
+
+        ctx.flags = AsmReadCr3();
+        pml4e_64* pml4 = (pml4e_64*)(ctx.bits.address_of_page_directory << 12);
+
+        if (!(pml4[pml4_idx].bits.present))
+        {
+            EFI_PHYSICAL_ADDRESS alloc = (EFI_PHYSICAL_ADDRESS)-1;
+            GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, 1, &alloc);
+
+            if ((alloc & 0xFFFu) != 0u)
+            {
+                return EFI_NO_MAPPING;
+            }
+
+            ZMemSet((void*)alloc, 0, SIZE_4KB);
+            pml4[pml4_idx].bits.page_frame_number = alloc >> 12;
+        }
+
+        pml4[pml4_idx].bits.present = 1u;
+        pml4[pml4_idx].bits.write = 1u;
+        pml4[pml4_idx].bits.execute_disable = 0u;
+
+        pdpte_64* pdpt = (pdpte_64*)(pml4[pml4_idx].bits.page_frame_number << 12);
+
+        if (!(pdpt[pdpt_idx].bits.present))
+        {
+            EFI_PHYSICAL_ADDRESS alloc = (EFI_PHYSICAL_ADDRESS)-1;
+            GSmst2->SmmAllocatePages(AllocateAnyPages, EfiRuntimeServicesData, 1, &alloc);
+
+            if ((alloc & 0xFFFu) != 0u)
+            {
+                return EFI_NO_MAPPING;
+            }
+
+            ZMemSet((void*)alloc, 0, SIZE_4KB);
+            pdpt[pdpt_idx].bits.page_frame_number = alloc >> 12;
+        }
+
+        pdpt[pdpt_idx].bits.present = 1u;
+        pdpt[pdpt_idx].bits.write = 1u;
+        pdpt[pdpt_idx].bits.execute_disable = 0u;
+
+        pde_64* pd = (pde_64*)(pdpt[pdpt_idx].bits.page_frame_number << 12);
+
+        pd[pd_idx].bits.present = 1u;
+        pd[pd_idx].bits.write = 1u;
+        pd[pd_idx].bits.execute_disable = 0u;
+        pd[pd_idx].bits.page_frame_number = addr >> 12;
+        pd[pd_idx].bits.large_page = 1u;
+
+    }
+
+    CpuFlushTlb();
+
+    return EFI_SUCCESS;
+}
 
 //This function does not currently work. It works on linx and windows but when porting to smm it fails.
 UINT64 TranslatePhysicalToVirtual(UINT64 targetcr3, UINT64 address)
@@ -298,6 +366,12 @@ EFI_STATUS SetupMemory(EFI_SMM_SYSTEM_TABLE2* smst)
 
     if(SetupMemoryMap() != EFI_SUCCESS)
     {
+      return EFI_NOT_FOUND;
+    }
+
+    if(MapPhysicalMemory() != EFI_SUCCESS)
+    {
+      SERIAL_PRINT("Mapping physical memory error!\r\n");
       return EFI_NOT_FOUND;
     }
 

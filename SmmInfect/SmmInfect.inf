@@ -28,6 +28,7 @@
     TimerLib
     MmServicesTableLib
     SynchronizationLib
+    BaseCpuLib
     
 [Protocols]
     gEfiSmmBase2ProtocolGuid
