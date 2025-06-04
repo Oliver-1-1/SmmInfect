@@ -48,7 +48,7 @@ void TriggerSmi()
     }
 
     GUID guid = {0};
-    // Try to get a variable that doesn't exist so we don't trigger a runtime cache hit
+    
     UNICODE_STRING name = RTL_CONSTANT_STRING(L"ZeptaVar");
     char buffer[8];
     NtSetSystemEnvironmentValueEx(&name, &guid, buffer, sizeof(buffer), EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS);
