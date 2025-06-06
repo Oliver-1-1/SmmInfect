@@ -118,8 +118,6 @@ void TriggerSmiUefiRuntimeVariable()
 }
 
 //The TPM2 definition block in ACPI table clearly defines how to trigger a SMI.
-//Windows exposes a WMI interface to the TPM that allows us to trigger the SMI.
-//This can also be done by opening tpm.msc and press Prepare the TPM or Clear TPM...
 //https://github.com/tianocore/edk2/blob/master/SecurityPkg/Tcg/Tcg2Acpi/Tpm.asl
 void TriggerSmiTpmAcpi()
 {
