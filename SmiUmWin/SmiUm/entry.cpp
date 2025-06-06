@@ -177,4 +177,7 @@ void TriggerSmiTpmAcpi()
     {
         printf("Command error: %x\n", result);
     }
+    
+    Tbsip_Context_Close(*context);
+    delete context;
 }
