@@ -4,10 +4,11 @@
 #include <stdbool.h>
 #include <winnt.h>
 #include <winternl.h>
-#include <comdef.h>
-#include <Wbemidl.h>
+#include <windows.h>
+#include <tbs.h>
+
+#pragma comment(lib, "tbs.lib")
 #pragma comment(lib, "ntdll.lib")
-#pragma comment(lib, "wbemuuid.lib")
 
 #define RTL_CONSTANT_STRING(s) { sizeof(s) - sizeof((s)[0]), sizeof(s), (PWSTR)s }
 #define EFI_VARIABLE_NON_VOLATILE                          0x00000001
@@ -65,8 +66,8 @@ void main()
         memset((void*)protocol.read_buffer, 0, sizeof(protocol.read_buffer));
 
         // Trigger a SMI and the driver will find this process.
-        TriggerSmi(TpmAcpi);
-        //TriggerSmi(UefiRuntime);
+        //TriggerSmi(TpmAcpi);
+        TriggerSmi(UefiRuntime);
 
         // Print out the bytes the SMM driver read for us.
         printf("Smi count: %llu\n", protocol.smi_count);
@@ -122,10 +123,16 @@ void TriggerSmiUefiRuntimeVariable()
 //https://github.com/tianocore/edk2/blob/master/SecurityPkg/Tcg/Tcg2Acpi/Tpm.asl
 void TriggerSmiTpmAcpi()
 {
+    BYTE buffer[256] = { 0u };
+    UINT32 size = sizeof(buffer);
+    TBS_RESULT result = TBS_SUCCESS;
+
+    PTBS_HCONTEXT hContext = new TBS_HCONTEXT;
+    TBS_CONTEXT_PARAMS2 contextParams = { 0u };
 
     HANDLE token = NULL;
     TOKEN_ELEVATION elevation;
-    DWORD size;
+    DWORD retlen;
 
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
     {
@@ -134,7 +141,7 @@ void TriggerSmiTpmAcpi()
     }
 
     BOOL isAdmin = FALSE;
-    if (GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &size))
+    if (GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &retlen))
     {
         isAdmin = elevation.TokenIsElevated;
     }
@@ -151,151 +158,25 @@ void TriggerSmiTpmAcpi()
         return;
     }
 
-    HRESULT res;
+    contextParams.version = TPM_VERSION_20;
+    contextParams.asUINT32 = 0;
+    contextParams.includeTpm20 = TRUE;
 
-    res = CoInitializeEx(0, COINIT_MULTITHREADED);
-    if (FAILED(res))
+    // Create TBS contex
+    result = Tbsi_Context_Create((PCTBS_CONTEXT_PARAMS)&contextParams, hContext);
+    if (result != TBS_SUCCESS)
     {
-        printf("COM initialize for thread failed\n");
+        printf("Could not create context: %x\n", result);
         return;
     }
 
-    // Set security
-    res = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+    memset(buffer, sizeof(buffer), 0x00u);
+    buffer[0] = 0x00000005u;
 
-    if (FAILED(res))
+    result = Tbsi_Physical_Presence_Command(*hContext, buffer, sizeof(DWORD), buffer, &size);
+
+    if (result != TBS_SUCCESS)
     {
-        printf("Security set failed\n");
-        CoUninitialize();
-        return;
+        printf("Command error: %x\n", result);
     }
-
-    // Connect to WMI
-    IWbemLocator* loc = NULL;
-    res = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&loc);
-
-    if (FAILED(res))
-    {
-        printf("Could not create instance\n");
-        CoUninitialize();
-        return;
-    }
-
-    IWbemServices* svc = NULL;
-    res = loc->ConnectServer(_bstr_t(L"ROOT\\CIMV2\\Security\\MicrosoftTpm"), NULL, NULL, 0, NULL, 0, 0, &svc);
-
-    if (FAILED(res))
-    {
-        printf("Could not connect to server\n");
-        loc->Release();
-        CoUninitialize();
-        return;
-    }
-
-    // Set security levels on the proxy
-    res = CoSetProxyBlanket(svc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
-
-    if (FAILED(res))
-    {
-        printf("Could not set proxy blanket\n");
-        svc->Release();
-        loc->Release();
-        CoUninitialize();
-        return;
-    }
-
-    // Get TPM class
-    IEnumWbemClassObject* enume = NULL;
-    res = svc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Tpm"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enume);
-
-    if (FAILED(res))
-    {
-        printf("WMI query failed\n");
-        svc->Release();
-        loc->Release();
-        CoUninitialize();
-        return;
-    }
-
-    // Get the TPM object
-    IWbemClassObject* tpm = NULL;
-    ULONG ret = 0;
-
-    res = enume->Next(WBEM_INFINITE, 1, &tpm, &ret);
-    if (ret == 0)
-    {
-        printf("No TPM found\n");
-        enume->Release();
-        svc->Release();
-        loc->Release();
-        CoUninitialize();
-        return;
-    }
-
-    // Call SetPhysicalPresenceRequest method
-    // https://learn.microsoft.com/en-us/windows/win32/secprov/setphysicalpresencerequest-win32-tpm
-    VARIANT request;
-    VariantInit(&request);
-    request.vt = VT_I4;
-    request.intVal = 6; // 6 = Enable and activate the TPM. 5 should work here aswell.
-
-    IWbemClassObject* params = NULL;
-    IWbemClassObject* wclass = NULL;
-    IWbemClassObject* oparams = NULL;
-    IWbemClassObject* iparams = NULL;
-
-    res = svc->GetObjectW((BSTR)L"Win32_Tpm", 0, NULL, &wclass, NULL);
-    if (FAILED(res))
-    {
-        printf("Failed to get object\n");
-        goto Clean;
-    }
-
-    res = wclass->GetMethod(L"SetPhysicalPresenceRequest", 0, &params, NULL);
-    if (FAILED(res))
-    {
-        printf("Failed to get method\n");
-        goto Clean;
-    }
-
-    res = params->SpawnInstance(0, &iparams);
-    if (FAILED(res))
-    {
-        printf("Failed spawn\n");
-        goto Clean;
-    }
-
-    res = iparams->Put(L"Request", 0, &request, 0);
-    if (FAILED(res))
-    {
-        printf("Failed to set request\n");
-        goto Clean;
-    }
-
-    //Get-WmiObject -Namespace root\cimv2\Security\MicrosoftTpm -Class Win32_Tpm in powershell and __PATH. This may vary for you.
-    // \\DESKTOP-XXXXXX\root\cimv2\Security\MicrosoftTpm:Win32_Tpm=@
-    res = svc->ExecMethod(bstr_t(L"Win32_Tpm=@"), bstr_t(L"SetPhysicalPresenceRequest"), 0, NULL, iparams, &oparams, NULL);
-
-    if (FAILED(res))
-    {
-        printf("Failed to execute\n");
-    }
-    else
-    {
-        //printf("SMI triggered.\n");
-    }
-
-Clean:
-
-    VariantClear(&request);
-    if (oparams) oparams->Release();
-    if (iparams) iparams->Release();
-    if (wclass) wclass->Release();
-    if (tpm) tpm->Release();
-    if (enume) enume->Release();
-    if (svc) svc->Release();
-    if (loc) loc->Release();
-    CoUninitialize();
 }
-
-
