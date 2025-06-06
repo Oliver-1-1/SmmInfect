@@ -116,7 +116,7 @@ void TriggerSmiUefiRuntimeVariable()
     NtSetSystemEnvironmentValueEx(&name, &guid, buffer, sizeof(buffer), EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS);
 }
 
-//The TPM2 definition block in ACPI table clearly defines how to trigger a SMI via the TPM.
+//The TPM2 definition block in ACPI table clearly defines how to trigger a SMI.
 //Windows exposes a WMI interface to the TPM that allows us to trigger the SMI.
 //This can also be done by opening tpm.msc and press Prepare the TPM or Clear TPM...
 //https://github.com/tianocore/edk2/blob/master/SecurityPkg/Tcg/Tcg2Acpi/Tpm.asl
