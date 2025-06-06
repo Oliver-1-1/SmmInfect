@@ -135,6 +135,7 @@ void TriggerSmiTpmAcpi()
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
     {
         printf("Could not open process token\n");
+        delete context;
         return;
     }
 
@@ -147,12 +148,14 @@ void TriggerSmiTpmAcpi()
     {
         printf("Could not get token information\n");
         CloseHandle(token);
+        delete context;
         return;
     }
 
     if (!isAdmin)
     {
         printf("No suitable permission! Open as admin!\n");
+        delete context;
         return;
     }
 
@@ -165,6 +168,7 @@ void TriggerSmiTpmAcpi()
     if (result != TBS_SUCCESS)
     {
         printf("Could not create context: %x\n", result);
+        delete context;
         return;
     }
 
