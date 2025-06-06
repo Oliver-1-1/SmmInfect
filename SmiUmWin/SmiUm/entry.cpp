@@ -127,8 +127,8 @@ void TriggerSmiTpmAcpi()
     UINT32 size = sizeof(buffer);
     TBS_RESULT result = TBS_SUCCESS;
 
-    PTBS_HCONTEXT hContext = new TBS_HCONTEXT;
-    TBS_CONTEXT_PARAMS2 contextParams = { 0u };
+    PTBS_HCONTEXT context = new TBS_HCONTEXT;
+    TBS_CONTEXT_PARAMS2 params = { 0u };
 
     HANDLE token = NULL;
     TOKEN_ELEVATION elevation;
@@ -158,22 +158,22 @@ void TriggerSmiTpmAcpi()
         return;
     }
 
-    contextParams.version = TPM_VERSION_20;
-    contextParams.asUINT32 = 0;
-    contextParams.includeTpm20 = TRUE;
+    params.version = TPM_VERSION_20;
+    params.asUINT32 = 0;
+    params.includeTpm20 = TRUE;
 
     // Create TBS contex
-    result = Tbsi_Context_Create((PCTBS_CONTEXT_PARAMS)&contextParams, hContext);
+    result = Tbsi_Context_Create((PCTBS_CONTEXT_PARAMS)&params, context);
     if (result != TBS_SUCCESS)
     {
         printf("Could not create context: %x\n", result);
         return;
     }
 
-    memset(buffer, sizeof(buffer), 0x00u);
+    RtlZeroMemory(buffer, sizeof(buffer));
     buffer[0] = 0x00000005u;
 
-    result = Tbsi_Physical_Presence_Command(*hContext, buffer, sizeof(DWORD), buffer, &size);
+    result = Tbsi_Physical_Presence_Command(*context, buffer, sizeof(DWORD), buffer, &size);
 
     if (result != TBS_SUCCESS)
     {
