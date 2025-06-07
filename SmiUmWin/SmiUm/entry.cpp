@@ -119,6 +119,7 @@ void TriggerSmiUefiRuntimeVariable()
 
 //The TPM2 definition block in ACPI table clearly defines how to trigger a SMI.
 //https://github.com/tianocore/edk2/blob/master/SecurityPkg/Tcg/Tcg2Acpi/Tpm.asl
+//https://github.com/tianocore/edk2/commit/1240a722f8466930cced7f7d40a3fb6a29efb146
 void TriggerSmiTpmAcpi()
 {
     BYTE buffer[256] = { 0u };
