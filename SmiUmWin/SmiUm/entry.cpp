@@ -175,8 +175,10 @@ void TriggerSmiTpmAcpi()
 
     RtlZeroMemory(buffer, sizeof(buffer));
     buffer[0] = 0x00000005u;
+    //buffer[0] = 0x00000002u;
 
     result = Tbsi_Physical_Presence_Command(*context, buffer, sizeof(DWORD), buffer, &size);
+    //result = Tbsi_Physical_Presence_Command(*context, buffer, sizeof(DWORD) * 2, buffer, &size);
 
     if (result != TBS_SUCCESS)
     {
