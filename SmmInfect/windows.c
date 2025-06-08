@@ -213,7 +213,7 @@ EFI_STATUS SetupWindows(EFI_SMM_CPU_PROTOCOL* cpu, EFI_SMM_SYSTEM_TABLE2* smst)
 }
 
 // credits ekknod
-UINT64 GetWindowsEProcess(const char* process_name)
+UINT64 GetWindowsEProcess(char* process_name)
 {
 
     if (EFI_ERROR(SetupWindows(Cpu, GSmst2)))
@@ -230,6 +230,7 @@ UINT64 GetWindowsEProcess(const char* process_name)
     {
         ReadVirtual(entry + PsGetProcessImageFileName, KernelCr3, (UINT8*)name, 15);
         name[14] = 0;
+        process_name[14] = 0;
 
         UINT32 exitcalled = ReadVirtual32(entry + PsGetProcessExitProcessCalled, KernelCr3);
         exitcalled = exitcalled >> 2;

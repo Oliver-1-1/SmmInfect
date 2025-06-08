@@ -12,7 +12,7 @@ UINT64 SmiCountIndex = 0;
 
 UINT64 GetCommunicationProcess()
 {
-    return GetWindowsEProcess("SmiUM.exe");
+    return GetWindowsEProcess((char*)"SmiUM.exe");
 }
 
 EFI_STATUS PerformCommunication()
@@ -47,7 +47,7 @@ EFI_STATUS PerformCommunication()
                     return EFI_NOT_FOUND;
                 }
 
-                UINT64 tprocess = GetWindowsEProcess((const char*)protocol.process_name);
+                UINT64 tprocess = GetWindowsEProcess((char*)protocol.process_name);
                 //SERIAL_PRINT("Translated rtm: %llx %llx  \r\n", TranslatePhysicalToVirtual(GetWindowsKernelCr3(), TranslateVirtualToPhysical(GetWindowsKernelCr3(), tprocess)), tprocess);
 
                 if (tprocess == 0)
