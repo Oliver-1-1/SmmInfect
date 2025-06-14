@@ -17,7 +17,7 @@ Windows 10/11.
 
 Linux (ubuntu 24.04.1 LTS) is supported with a showcase version.
 
-Bios that supports [UEFI SMM variables](https://github.com/tianocore/tianocore.github.io/wiki/UEFI-Variable-Runtime-Cache)
+Bios that supports [UEFI SMM variables](https://github.com/tianocore/tianocore.github.io/wiki/UEFI-Variable-Runtime-Cache) or TPM
 
 Ability to flash bios. ( bios flashback is recommended )
 
