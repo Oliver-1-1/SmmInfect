@@ -66,8 +66,8 @@ void main()
         memset((void*)protocol.read_buffer, 0, sizeof(protocol.read_buffer));
 
         // Trigger a SMI and the driver will find this process.
-        //TriggerSmi(TpmAcpi);
-        TriggerSmi(UefiRuntime);
+        TriggerSmi(TpmAcpi);
+        //TriggerSmi(UefiRuntime);
 
         // Print out the bytes the SMM driver read for us.
         printf("Smi count: %llu\n", protocol.smi_count);
